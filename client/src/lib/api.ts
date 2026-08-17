@@ -54,6 +54,62 @@ export type Category = {
   image_url?: string;
 };
 
+export type SiteSettings = {
+  id?: string;
+  shopName: string;
+  logo: string;
+  logoUrl?: string;
+  phone: string;
+  email: string;
+  address: string;
+  whatsapp: string;
+  facebook: string;
+  instagram: string;
+  tiktok: string;
+  heroHomeBg?: string;
+  heroHomeModel?: string;
+  heroShop?: string;
+  heroAbout?: string;
+  heroContact?: string;
+  heroCart?: string;
+  heroCheckout?: string;
+  heroTrackOrder?: string;
+  heroProduct?: string;
+  heroAdminLogin?: string;
+  homePromoBanner?: string;
+  openingHours: string;
+  ecocashMerchantName: string;
+  ecocashMerchantNumber: string;
+  collectionInstructions: string;
+  defaultDeliveryFee: number;
+};
+
+export type AdminAccount = {
+  id: string;
+  full_name: string;
+  first_name: string;
+  surname: string;
+  email: string;
+  role: string;
+  status: string;
+  email_verified_at?: string | null;
+  last_login_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Subscriber = {
+  id: string;
+  name?: string | null;
+  whatsapp_number: string;
+  opted_in: boolean;
+  opted_in_at?: string | null;
+  status: "ACTIVE" | "UNSUBSCRIBED" | "INACTIVE";
+  last_notification_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export function isProduct(value: unknown): value is Product {
   return Boolean(
     value &&

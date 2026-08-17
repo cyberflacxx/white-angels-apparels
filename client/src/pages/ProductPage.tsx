@@ -60,7 +60,7 @@ export function ProductPage() {
   if (loadError) {
     return (
       <main>
-        <Hero title="Product unavailable" subtitle={loadError} image="/images/hero-product.jpg" compact />
+        <Hero title="Product unavailable" subtitle={loadError} image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
         <Section><Container><EmptyState title="Product unavailable" copy="Return to the shop to browse the current catalogue." action={<AppLink to="/shop">Back to Shop</AppLink>} /></Container></Section>
       </main>
     );
@@ -69,23 +69,23 @@ export function ProductPage() {
   if (notFound) {
     return (
       <main>
-        <Hero title="Product unavailable" subtitle="This item may be sold out or no longer listed." image="/images/hero-product.jpg" compact />
+        <Hero title="Product unavailable" subtitle="This item may be sold out or no longer listed." image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
         <Section><Container><EmptyState title="Product not found" copy="Return to the shop to view available items." action={<AppLink to="/shop">Back to Shop</AppLink>} /></Container></Section>
       </main>
     );
   }
 
-  if (!product) return <Hero title="Loading product" image="/images/hero-product.jpg" compact />;
+  if (!product) return <Hero title="Loading product" image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />;
 
   const related = products.filter((item) => item.id !== product.id).slice(0, 4);
 
   return (
     <main>
-      <Hero title={product.name} subtitle={product.short_description} image={product.image_url || "/images/hero-product.jpg"} compact />
+      <Hero title={product.name} subtitle={product.short_description} image={product.image_url || settings.heroProduct || "/images/site/hero-product.jpg"} compact />
       <Section>
         <Container className="product-detail">
           <div className="gallery">
-            {[product.image_url || "/images/hero-product.jpg", "/images/hero-shop.jpg", "/images/hero-about.jpg"].map((image, index) => (
+            {[product.image_url || settings.heroProduct || "/images/site/hero-product.jpg", settings.heroShop || "/images/site/hero-shop.jpg", settings.heroAbout || "/images/site/hero-about.jpg"].map((image, index) => (
               <button key={image} className={index === 0 ? "gallery__item gallery__item--main" : "gallery__item"} aria-label={`Product image ${index + 1}`}>
                 <img src={image} alt={index === 0 ? product.name : ""} />
               </button>

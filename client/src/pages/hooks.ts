@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, hasApiBaseUrl, isCategory, isProduct, type Category, type Product } from "../lib/api";
+import { api, hasApiBaseUrl, isCategory, isProduct, type AdminAccount, type Category, type Product, type SiteSettings, type Subscriber } from "../lib/api";
 import { WHATSAPP_CHANNEL_URL } from "../lib/site";
 
 export function useCatalog() {
@@ -51,27 +51,11 @@ export function useCatalog() {
   return { products, categories, catalogError, isCatalogLoading };
 }
 
-export type SiteSettings = {
-  shopName: string;
-  logo: string;
-  phone: string;
-  email: string;
-  address: string;
-  whatsapp: string;
-  facebook: string;
-  instagram: string;
-  tiktok: string;
-  openingHours: string;
-  ecocashMerchantName: string;
-  ecocashMerchantNumber: string;
-  collectionInstructions: string;
-  defaultDeliveryFee: number;
-};
-
 export function useSiteSettings() {
   const [settings, setSettings] = useState<SiteSettings>({
     shopName: "White Angels Apparels",
     logo: "White Angels Apparels",
+    logoUrl: "/images/site/logo-white-angels.png",
     phone: "",
     email: "",
     address: "",
@@ -79,6 +63,17 @@ export function useSiteSettings() {
     facebook: "",
     instagram: "",
     tiktok: "",
+    heroHomeBg: "/images/site/hero-home-bg.jpg",
+    heroHomeModel: "/images/site/hero-home-model.jpg",
+    heroShop: "/images/site/hero-shop.jpg",
+    heroAbout: "/images/site/hero-about.jpg",
+    heroContact: "/images/site/hero-contact.jpg",
+    heroCart: "/images/site/hero-cart.jpg",
+    heroCheckout: "/images/site/hero-checkout.jpg",
+    heroTrackOrder: "/images/site/hero-track-order.jpg",
+    heroProduct: "/images/site/hero-product.jpg",
+    heroAdminLogin: "/images/site/hero-admin-login.jpg",
+    homePromoBanner: "/images/site/banner-home-promo.jpg",
     openingHours: "",
     ecocashMerchantName: "",
     ecocashMerchantNumber: "",
@@ -120,6 +115,70 @@ export function useSiteSettings() {
   return { settings, settingsError };
 }
 
+export function useAdminAccount(enabled = true) {
+  const [account, setAccount] = useState<AdminAccount | null>(null);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setLoading(true);
+
+    void api
+      .get<AdminAccount>("/admin/account")
+      .then((response) => {
+        if (!active) return;
+        setAccount(response.data);
+        setError("");
+      })
+      .catch(() => {
+        if (active) setError("Your admin account details could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [enabled]);
+
+  return { account, loading, error, setAccount };
+}
+
+export function useSubscribers(enabled = true) {
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setLoading(true);
+
+    void api
+      .get<Subscriber[]>("/admin/subscribers")
+      .then((response) => {
+        if (!active) return;
+        setSubscribers(response.data);
+        setError("");
+      })
+      .catch(() => {
+        if (active) setError("Subscriber records could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [enabled]);
+
+  return { subscribers, loading, error, setSubscribers };
+}
+
 function readList<T>(result: PromiseSettledResult<{ data: unknown }>, isItem: (value: unknown) => value is T) {
   if (result.status !== "fulfilled" || !Array.isArray(result.value.data)) return [];
   return result.value.data.filter(isItem);
@@ -148,6 +207,18 @@ function normalizeSiteSettings(value: unknown): SiteSettings {
     facebook: readString(payload.facebook),
     instagram: readString(payload.instagram),
     tiktok: readString(payload.tiktok),
+    logoUrl: readString(payload.logoUrl, "/images/site/logo-white-angels.png"),
+    heroHomeBg: readString(payload.heroHomeBg, "/images/site/hero-home-bg.jpg"),
+    heroHomeModel: readString(payload.heroHomeModel, "/images/site/hero-home-model.jpg"),
+    heroShop: readString(payload.heroShop, "/images/site/hero-shop.jpg"),
+    heroAbout: readString(payload.heroAbout, "/images/site/hero-about.jpg"),
+    heroContact: readString(payload.heroContact, "/images/site/hero-contact.jpg"),
+    heroCart: readString(payload.heroCart, "/images/site/hero-cart.jpg"),
+    heroCheckout: readString(payload.heroCheckout, "/images/site/hero-checkout.jpg"),
+    heroTrackOrder: readString(payload.heroTrackOrder, "/images/site/hero-track-order.jpg"),
+    heroProduct: readString(payload.heroProduct, "/images/site/hero-product.jpg"),
+    heroAdminLogin: readString(payload.heroAdminLogin, "/images/site/hero-admin-login.jpg"),
+    homePromoBanner: readString(payload.homePromoBanner, "/images/site/banner-home-promo.jpg"),
     openingHours: readString(payload.openingHours),
     ecocashMerchantName: readString(payload.ecocashMerchantName),
     ecocashMerchantNumber: readString(payload.ecocashMerchantNumber),

@@ -45,7 +45,7 @@ export function Checkout() {
 
   return (
     <main>
-      <Hero title="Complete your order." subtitle="Simple customer details, fulfilment, payment, and review." image="/images/hero-checkout.jpg" compact />
+      <Hero title="Complete your order." subtitle="Simple customer details, fulfilment, payment, and review." image={settings.heroCheckout} compact />
       <Section>
         <Container className="checkout-grid">
           <div className="checkout-flow">

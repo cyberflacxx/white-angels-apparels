@@ -1,34 +1,79 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faGem, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { faFacebookF, faInstagram, faTiktok, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
+import type { FormEvent } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Hero } from "../components/Hero";
 import { ProductCard } from "../components/ProductCard";
+import { api } from "../lib/api";
 import { getPublicSocialLinks, WHATSAPP_CHANNEL_LABEL } from "../lib/site";
-import { AppLink, Container, EmptyState, Section, SectionHeading } from "../components/UI";
+import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeading } from "../components/UI";
 import { useCatalog, useSiteSettings } from "./hooks";
 
 const categoryPlaceholders = [
-  { name: "Women", description: "Clean pieces for confident styling.", image_url: "/images/hero-shop.jpg" },
-  { name: "Men", description: "Modern apparel with a polished finish.", image_url: "/images/hero-product.jpg" },
-  { name: "Shoes", description: "Strong foundations for every look.", image_url: "/images/hero-about.jpg" },
-  { name: "Accessories", description: "Finishing touches with intention.", image_url: "/images/hero-contact.jpg" }
+  { name: "Women", description: "Clean pieces for confident styling.", image_url: "/images/site/category-women.jpg" },
+  { name: "Men", description: "Modern apparel with a polished finish.", image_url: "/images/site/category-men.jpg" },
+  { name: "Shoes", description: "Strong foundations for every look.", image_url: "/images/site/category-shoes.jpg" },
+  { name: "Accessories", description: "Finishing touches with intention.", image_url: "/images/site/category-accessories.jpg" }
+];
+
+const whyWhiteAngels = [
+  { emoji: "✨", title: "Quality Selection", copy: "Curated pieces with a polished finish for everyday confidence." },
+  { emoji: "🚚", title: "Reliable Delivery", copy: "Delivery options stay clear from browsing through checkout." },
+  { emoji: "🏪", title: "Easy Collection", copy: "Shop collection remains simple for customers who prefer pickup." },
+  { emoji: "💳", title: "Flexible Payments", copy: "EcoCash verification and cash options stay transparent." }
 ];
 
 export function Home() {
   const { products, categories, catalogError } = useCatalog();
   const { settings, settingsError } = useSiteSettings();
+  const [stockForm, setStockForm] = useState({ name: "", whatsappNumber: "", optedIn: false });
+  const [stockMessage, setStockMessage] = useState("");
+  const [stockError, setStockError] = useState("");
+  const [stockSubmitting, setStockSubmitting] = useState(false);
   const displayCategories = categories.length ? categories : categoryPlaceholders.map((item, index) => ({ ...item, id: `placeholder-${index}`, slug: item.name.toLowerCase() }));
   const socials = getPublicSocialLinks(settings);
 
+  async function submitStockAlert(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStockMessage("");
+    setStockError("");
+    setStockSubmitting(true);
+
+    try {
+      const response = await api.post("/stock-alerts/subscribe", stockForm);
+      setStockMessage(response.data.message || "You are subscribed to stock alerts.");
+      setStockForm({ name: "", whatsappNumber: "", optedIn: false });
+    } catch (requestError: any) {
+      setStockError(requestError?.response?.data?.message || "Subscription could not be saved.");
+    } finally {
+      setStockSubmitting(false);
+    }
+  }
+
   return (
     <main>
-      <Hero title="Wear Your Confidence." subtitle="Curated apparel for everyday style, delivered your way." image="/images/hero-home.jpg">
-        <div className="hero-actions">
-          <AppLink to="/shop">Shop Collection</AppLink>
-          <AppLink to="/shop" variant="ghost">Shop New Arrivals</AppLink>
-        </div>
-      </Hero>
+      <section
+        className="home-hero home-hero--split"
+        style={{
+          backgroundImage: `linear-gradient(120deg, rgba(7,26,61,.94), rgba(58,131,247,.42)), url("${settings.heroHomeBg || "/images/site/hero-home-bg.jpg"}")`
+        }}
+      >
+        <Container className="home-hero__grid">
+          <div className="home-hero__copy">
+            <h1>Polished pieces for every plan.</h1>
+            <p>Thoughtful fashion, confident styling, and delivery or collection options that stay easy to understand.</p>
+            <div className="hero-actions">
+              <AppLink to="/shop">Explore Collection</AppLink>
+            </div>
+          </div>
+          <div className="home-hero__media">
+            <div className="home-hero__media-card">
+              <img src={settings.heroHomeModel || "/images/site/hero-home-model.jpg"} alt="White Angels fashion model" />
+            </div>
+          </div>
+        </Container>
+      </section>
 
       <Section>
         <Container>
@@ -37,7 +82,7 @@ export function Home() {
           <div className="category-grid">
             {displayCategories.slice(0, 4).map((category) => (
               <Link className="category-card" key={category.id} to="/shop">
-                <img loading="lazy" src={category.image_url || "/images/hero-shop.jpg"} alt={category.name} />
+                <img loading="lazy" src={category.image_url || "/images/site/category-women.jpg"} alt={category.name} />
                 <span>
                   <strong>{category.name}</strong>
                   <small>{category.description || "Explore the collection"}</small>
@@ -48,29 +93,32 @@ export function Home() {
         </Container>
       </Section>
 
-      <ProductRail title="New arrivals" eyebrow="Fresh pieces" products={products.filter((p) => p.new_arrival)} empty="New arrivals will appear here once products are added." />
+      <ProductRail title="New arrivals" eyebrow="Fresh pieces" products={products.filter((product) => product.new_arrival)} empty="New arrivals will appear here once products are added." />
 
-      <section className="promo">
+      <Section className="why-section">
         <Container>
-          <p className="eyebrow">White and blue edit</p>
-          <h2>Polished pieces for every plan.</h2>
-          <AppLink to="/shop" variant="ghost">Explore Collection</AppLink>
-        </Container>
-      </section>
-
-      <ProductRail title="Featured products" eyebrow="Selected for you" products={products.filter((p) => p.featured).length ? products.filter((p) => p.featured) : products.slice(0, 4)} empty="Featured products will appear here once the catalogue is populated." />
-
-      <Section>
-        <Container>
-          <SectionHeading eyebrow="Why White Angels" title="A cleaner way to shop apparel" copy="The storefront stays practical while feeling premium, spacious, and simple to browse." />
-          <div className="info-grid">
-            <Feature icon={faGem} title="Quality Selection" copy="A focused catalogue structure for thoughtful merchandising." />
-            <Feature icon={faTruck} title="Home Delivery" copy="Delivery details are captured clearly during checkout." />
-            <Feature icon={faStore} title="Shop Collection" copy={settings.collectionInstructions || "Collection details are confirmed after order approval."} />
-            <Feature icon={faWallet} title="Flexible Payments" copy="EcoCash uses manual verification; cash is available for delivery or collection." />
+          <SectionHeading eyebrow="Why White Angels" title="A cleaner way to shop apparel" copy="These signature benefits stay simple, bold, and visible across every device." />
+          <div className="why-grid">
+            {whyWhiteAngels.map((item) => (
+              <article className="why-card" key={item.title}>
+                <span className="why-card__emoji" aria-hidden="true">{item.emoji}</span>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+              </article>
+            ))}
           </div>
         </Container>
       </Section>
+
+      <Section className="promo-banner-section">
+        <Container>
+          <div className="promo-banner-card">
+            <img src={settings.homePromoBanner || "/images/site/banner-home-promo.jpg"} alt="White Angels promotional banner" />
+          </div>
+        </Container>
+      </Section>
+
+      <ProductRail title="Featured products" eyebrow="Selected for you" products={products.filter((product) => product.featured).length ? products.filter((product) => product.featured) : products.slice(0, 4)} empty="Featured products will appear here once the catalogue is populated." />
 
       <Section className="split-section">
         <Container className="two-column">
@@ -80,7 +128,7 @@ export function Home() {
           </div>
           <div className="selection-grid">
             <Feature icon={faTruck} title="Home Delivery" copy="Provide your delivery address at checkout and review the delivery fee before placing the order." />
-            <Feature icon={faStore} title="Shop Collection" copy={settings.collectionInstructions || "Collection instructions are confirmed after your order is approved."} />
+            <Feature icon={faStore} title="Shop Collection" copy={settings.collectionInstructions || "Collection details will be confirmed after your order is approved."} />
           </div>
         </Container>
       </Section>
@@ -95,26 +143,42 @@ export function Home() {
             </div>
           </div>
           <div>
-            <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="The confirmed public social channel is WhatsApp. Other channels stay hidden until real URLs are supplied." />
+            <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="WhatsApp is confirmed. Facebook, TikTok, and Instagram become clickable only when configured in admin settings." />
             <div className="socials socials--large">
               {socials.map((item) => (
-                <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer">
-                  <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "instagram" ? faInstagram : item.platform === "facebook" ? faFacebookF : faTiktok} />
-                </a>
+                item.enabled ? (
+                  <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer" className={`social-link social-link--${item.platform}`}>
+                    <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "facebook" ? faFacebookF : item.platform === "tiktok" ? faTiktok : faInstagram} />
+                  </a>
+                ) : (
+                  <span key={item.label} className={`socials__disabled socials__disabled--${item.platform}`} aria-label={`${item.label} not configured`}>
+                    <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "facebook" ? faFacebookF : item.platform === "tiktok" ? faTiktok : faInstagram} />
+                  </span>
+                )
               ))}
             </div>
-            <p className="social-note">{WHATSAPP_CHANNEL_LABEL} is live now. Facebook, Instagram, and TikTok will appear automatically when their real URLs are configured.</p>
+            <p className="social-note">{WHATSAPP_CHANNEL_LABEL} is live now. Facebook, TikTok, and Instagram can be switched on later through admin settings.</p>
           </div>
         </Container>
       </Section>
 
       <Section className="newsletter-block">
-        <Container>
-          <SectionHeading eyebrow="Newsletter" title="New drop alerts are coming soon." copy="The form is intentionally disabled until a subscription backend exists." />
-          <form onSubmit={(event) => event.preventDefault()}>
-            <label className="sr-only" htmlFor="newsletter-email">Email address</label>
-            <input id="newsletter-email" type="email" placeholder="Email address" disabled />
-            <button disabled>Subscribe Soon</button>
+        <Container className="stock-alert-panel">
+          <div>
+            <SectionHeading eyebrow="New stock alerts" title="Get White Angels updates on WhatsApp." copy="Join the stock alert list with your WhatsApp number and explicit consent. Unsubscribed customers are excluded from sends." />
+          </div>
+          <form className="form-stack" onSubmit={submitStockAlert}>
+            <div className="form-grid">
+              <Field label="Name optional" value={stockForm.name} onChange={(event) => setStockForm({ ...stockForm, name: event.target.value })} />
+              <Field label="WhatsApp Number" value={stockForm.whatsappNumber} onChange={(event) => setStockForm({ ...stockForm, whatsappNumber: event.target.value })} placeholder="077..., 071..., 078..., or +263..." />
+            </div>
+            <label className="auth-checkbox">
+              <input type="checkbox" checked={stockForm.optedIn} onChange={(event) => setStockForm({ ...stockForm, optedIn: event.target.checked })} />
+              <span>I agree to receive White Angels Apparels stock updates through WhatsApp.</span>
+            </label>
+            {stockError && <div className="error-card">{stockError}</div>}
+            {stockMessage && <div className="status-banner">{stockMessage}</div>}
+            <AppButton type="submit" disabled={stockSubmitting}>{stockSubmitting ? "Saving..." : "Notify Me"}</AppButton>
           </form>
         </Container>
       </Section>

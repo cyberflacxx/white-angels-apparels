@@ -43,9 +43,15 @@ export function Footer() {
           <p>Premium apparel, clean styling, flexible fulfilment, and a calm shopping experience built for confident everyday looks.</p>
           <div className="socials">
             {socials.map((item) => (
-              <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer">
-                <FontAwesomeIcon icon={socialIcons[item.platform]} />
-              </a>
+              item.enabled ? (
+                <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer">
+                  <FontAwesomeIcon icon={socialIcons[item.platform]} />
+                </a>
+              ) : (
+                <span key={item.label} className={`socials__disabled socials__disabled--${item.platform}`} aria-label={`${item.label} not configured`}>
+                  <FontAwesomeIcon icon={socialIcons[item.platform]} />
+                </span>
+              )
             ))}
           </div>
         </div>

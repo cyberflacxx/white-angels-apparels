@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import path from "node:path";
 import { z } from "zod";
 
 dotenv.config();
@@ -31,7 +32,24 @@ const envSchema = z.object({
   TIKTOK_URL: z.string().optional().default(""),
   ECOCASH_MERCHANT_NAME: z.string().optional().default(""),
   ECOCASH_MERCHANT_NUMBER: z.string().optional().default(""),
-  COLLECTION_INSTRUCTIONS: z.string().default("Collection details will be confirmed after your order is approved.")
+  COLLECTION_INSTRUCTIONS: z.string().default("Collection details will be confirmed after your order is approved."),
+  ADMIN_REGISTRATION_KEY: z.string().optional().default(""),
+  OTP_EXPIRY_MINUTES: z.coerce.number().int().positive().default(10),
+  OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+  SMTP_HOST: z.string().optional().default(""),
+  SMTP_PORT: z.coerce.number().int().positive().optional().default(465),
+  SMTP_SECURE: z.coerce.boolean().optional().default(true),
+  SMTP_USER: z.string().optional().default(""),
+  SMTP_PASSWORD: z.string().optional().default(""),
+  SMTP_FROM_NAME: z.string().default("White Angels Apparels"),
+  SMTP_FROM_EMAIL: z.string().optional().default(""),
+  WHATSAPP_PROVIDER: z.string().optional().default(""),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().default(""),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().default(""),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().default(""),
+  UPLOAD_DIR: z.string().default(path.resolve(process.cwd(), "uploads")),
+  UPLOAD_PUBLIC_BASE: z.string().default("/uploads")
 });
 
 export const env = envSchema.parse(process.env);
@@ -39,6 +57,7 @@ export const env = envSchema.parse(process.env);
 export const siteSettings = {
   shopName: env.SHOP_NAME,
   logo: "White Angels Apparels",
+  logoUrl: "/images/site/logo-white-angels.png",
   phone: env.SHOP_PHONE,
   email: env.SHOP_EMAIL,
   address: env.SHOP_ADDRESS,
@@ -46,6 +65,17 @@ export const siteSettings = {
   facebook: env.FACEBOOK_URL,
   instagram: env.INSTAGRAM_URL,
   tiktok: env.TIKTOK_URL,
+  heroHomeBg: "/images/site/hero-home-bg.jpg",
+  heroHomeModel: "/images/site/hero-home-model.jpg",
+  heroShop: "/images/site/hero-shop.jpg",
+  heroAbout: "/images/site/hero-about.jpg",
+  heroContact: "/images/site/hero-contact.jpg",
+  heroCart: "/images/site/hero-cart.jpg",
+  heroCheckout: "/images/site/hero-checkout.jpg",
+  heroTrackOrder: "/images/site/hero-track-order.jpg",
+  heroProduct: "/images/site/hero-product.jpg",
+  heroAdminLogin: "/images/site/hero-admin-login.jpg",
+  homePromoBanner: "/images/site/banner-home-promo.jpg",
   openingHours: "",
   ecocashMerchantName: env.ECOCASH_MERCHANT_NAME,
   ecocashMerchantNumber: env.ECOCASH_MERCHANT_NUMBER,

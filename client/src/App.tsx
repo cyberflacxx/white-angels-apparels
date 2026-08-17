@@ -3,8 +3,8 @@ import { CartProvider } from "./context/CartContext";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { About } from "./pages/About";
-import { AdminCategories, AdminCustomers, AdminDashboard, AdminInventory, AdminOrderDetail, AdminOrders, AdminProducts, AdminReports, AdminSettings, ProductForm } from "./pages/AdminPages";
-import { AdminLogin } from "./pages/AdminLogin";
+import { AdminAccount, AdminCategories, AdminCustomers, AdminDashboard, AdminInventory, AdminOrderDetail, AdminOrders, AdminProducts, AdminReports, AdminSettings, AdminSubscribers, ProductForm } from "./pages/AdminPages";
+import { AdminLogin, AdminRegister, AdminRegisterVerify } from "./pages/AdminLogin";
 import { Cart } from "./pages/Cart";
 import { Checkout } from "./pages/Checkout";
 import { Contact } from "./pages/Contact";
@@ -31,6 +31,8 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
           </Route>
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/register" element={<AdminRegister />} />
+          <Route path="/admin/register/verify" element={<AdminRegisterVerify />} />
           <Route element={<ProtectedAdminRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -42,8 +44,10 @@ export default function App() {
               <Route path="categories" element={<AdminCategories />} />
               <Route path="inventory" element={<AdminInventory />} />
               <Route path="customers" element={<AdminCustomers />} />
+              <Route path="subscribers" element={<AdminSubscribers />} />
               <Route path="reports" element={<AdminReports />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="account" element={<AdminAccount />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" />} />

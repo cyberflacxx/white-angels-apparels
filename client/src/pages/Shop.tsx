@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { Hero } from "../components/Hero";
 import { ProductCard } from "../components/ProductCard";
 import { Container, EmptyState, Section, SelectField } from "../components/UI";
-import { useCatalog } from "./hooks";
+import { useCatalog, useSiteSettings } from "./hooks";
 
 export function Shop() {
   const { products, categories, catalogError } = useCatalog();
+  const { settings } = useSiteSettings();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("Newest");
@@ -19,7 +20,7 @@ export function Shop() {
 
   return (
     <main>
-      <Hero title="Find your next look." subtitle="Search, filter, and shop White Angels pieces without clutter." image="/images/hero-shop.jpg" compact />
+      <Hero title="Find your next look." subtitle="Search, filter, and shop White Angels pieces without clutter." image={settings.heroShop} compact />
       <Section>
         <Container>
           {catalogError && <div className="status-banner" role="status">{catalogError}</div>}

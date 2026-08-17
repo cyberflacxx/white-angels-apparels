@@ -36,7 +36,7 @@ export function createApp() {
   app.use(cors(corsOptions));
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 }));
   app.use(express.json({ limit: "1mb" }));
-  app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
+  app.use(env.UPLOAD_PUBLIC_BASE, express.static(path.resolve(env.UPLOAD_DIR)));
   app.get("/health", (_req, res) => res.json({ ok: true, name: "White Angels Apparels API" }));
   app.use("/api/v1", publicRoutes);
   app.use("/api/v1/admin", adminRoutes);

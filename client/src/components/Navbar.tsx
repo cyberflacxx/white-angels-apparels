@@ -3,6 +3,7 @@ import { faBars, faCartShopping, faMagnifyingGlass, faUserShield, faXmark } from
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { useSiteSettings } from "../pages/hooks";
 
 const links = [
   ["Home", "/"],
@@ -16,6 +17,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { count } = useCart();
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 28);
@@ -32,8 +34,8 @@ export function Navbar() {
   return (
     <header className={scrolled || open ? "navbar navbar--solid" : "navbar"}>
       <Link to="/" className="logo" onClick={() => setOpen(false)}>
-        <span>WA</span>
-        <strong>White Angels Apparels</strong>
+        {settings.logoUrl ? <img src={settings.logoUrl || "/images/site/logo-white-angels.png"} alt="White Angels Apparels logo" /> : <span>WA</span>}
+        <strong>{settings.shopName || "White Angels Apparels"}</strong>
       </Link>
       <nav className={open ? "navlinks navlinks--open" : "navlinks"} aria-label="Primary navigation">
         {links.map(([label, href]) => (

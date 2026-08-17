@@ -9,7 +9,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <article className="product-card">
       <Link className="product-card__media" to={`/product/${product.slug}`} aria-label={`View ${product.name}`}>
-        <img loading="lazy" src={product.image_url || "/images/hero-product.jpg"} alt={product.name} />
+        <img loading="lazy" src={product.image_url || "/images/site/placeholder-product.jpg"} alt={product.name} />
       </Link>
       <div className="product-card__body">
         <p className="product-card__category">{product.category_name || "Collection"}</p>

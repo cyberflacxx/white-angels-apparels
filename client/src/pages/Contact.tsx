@@ -10,14 +10,14 @@ export function Contact() {
   const { settings } = useSiteSettings();
   return (
     <main>
-      <Hero title="We would love to hear from you." subtitle="Reach out for orders, collection, delivery, and product questions." image="/images/hero-contact.jpg" compact />
+      <Hero title="We would love to hear from you." subtitle="Reach out for orders, collection, delivery, and product questions." image={settings.heroContact} compact />
       <Section>
         <Container>
           <div className="contact-grid">
             <ContactCard icon={faPhone} title="Phone" value={settings.phone || "Not configured"} />
             <ContactCard icon={faEnvelope} title="Email" value={settings.email || "Not configured"} />
             <ContactCard icon={faLocationDot} title="Location" value={settings.address || "Not configured"} />
-            <ContactCard icon={faWhatsapp} title={WHATSAPP_CHANNEL_LABEL} value="Join the official White Angels WhatsApp Channel." href={WHATSAPP_CHANNEL_URL} />
+            <ContactCard icon={faWhatsapp} title={WHATSAPP_CHANNEL_LABEL} value="Join the official White Angels WhatsApp Channel." href={settings.whatsapp || WHATSAPP_CHANNEL_URL} />
           </div>
         </Container>
       </Section>
@@ -34,7 +34,7 @@ export function Contact() {
           <aside className="summary">
             <h2>Store Details</h2>
             <p>Business hours, phone, email, and address stay hidden until real business details are supplied. The confirmed public social channel is WhatsApp.</p>
-            <a className="btn btn--secondary" href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noopener noreferrer"><FontAwesomeIcon icon={faWhatsapp} /> {WHATSAPP_CHANNEL_LABEL}</a>
+            <a className="btn btn--secondary" href={settings.whatsapp || WHATSAPP_CHANNEL_URL} target="_blank" rel="noopener noreferrer"><FontAwesomeIcon icon={faWhatsapp} /> {WHATSAPP_CHANNEL_LABEL}</a>
           </aside>
         </Container>
       </Section>

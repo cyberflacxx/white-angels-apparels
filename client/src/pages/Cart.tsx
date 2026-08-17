@@ -4,18 +4,20 @@ import { Link } from "react-router-dom";
 import { Hero } from "../components/Hero";
 import { AppLink, Container, EmptyState, Field, Section } from "../components/UI";
 import { useCart } from "../context/CartContext";
+import { useSiteSettings } from "./hooks";
 
 export function Cart() {
   const { items, subtotal, updateQuantity, removeItem } = useCart();
+  const { settings } = useSiteSettings();
   return (
     <main>
-      <Hero title="Your Cart" subtitle="Review your pieces before checkout." image="/images/hero-cart.jpg" compact />
+      <Hero title="Your Cart" subtitle="Review your pieces before checkout." image={settings.heroCart} compact />
       <Section>
         <Container className="cart-layout">
           <div className="cart-list">
             {items.length ? items.map(({ product, quantity }) => (
               <article className="cart-row" key={product.id}>
-                <img src={product.image_url || "/images/hero-product.jpg"} alt={product.name} />
+                <img src={product.image_url || "/images/site/placeholder-product.jpg"} alt={product.name} />
                 <div>
                   <Link to={`/product/${product.slug}`}>{product.name}</Link>
                   <small>{product.category_name}</small>
