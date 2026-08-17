@@ -1,4 +1,5 @@
 import { query } from "../db/pool.js";
+import { env } from "../config/env.js";
 
 export const fallbackCategories = [
   { id: "b201a08b-b5ab-4b41-b9f4-b4338c7de101", name: "Dresses", slug: "dresses", description: "Elegant dresses", image_url: "/images/hero-shop.jpg", status: "ACTIVE" },
@@ -40,8 +41,9 @@ export const fallbackProducts = [
 export async function listCategories() {
   try {
     const result = await query("select * from categories where status = 'ACTIVE' order by name");
-    return result.rows.length ? result.rows : fallbackCategories;
+    return result.rows;
   } catch {
+    if (env.NODE_ENV === "production") return [];
     return fallbackCategories;
   }
 }
@@ -68,8 +70,9 @@ export async function listProducts(filters: { category?: string; search?: string
        where ${where.join(" and ")} order by ${sort}`,
       params
     );
-    return result.rows.length ? result.rows : fallbackProducts;
+    return result.rows;
   } catch {
+    if (env.NODE_ENV === "production") return [];
     return fallbackProducts;
   }
 }
@@ -84,8 +87,9 @@ export async function getProductBySlug(slug: string) {
        where p.slug = $1 and p.status = 'ACTIVE'`,
       [slug]
     );
-    return result.rows[0] ?? fallback;
+    return result.rows[0] ?? (env.NODE_ENV === "production" ? undefined : fallback);
   } catch {
+    if (env.NODE_ENV === "production") return undefined;
     return fallback;
   }
 }
