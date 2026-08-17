@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const defaultApiBaseUrl = import.meta.env.PROD ? "/api/v1" : "http://localhost:5000/api/v1";
+const productionApiBaseUrl = "https://whiteangels.178.238.227.229.sslip.io/api/v1";
+const developmentApiBaseUrl = "http://localhost:5000/api/v1";
+const defaultApiBaseUrl = import.meta.env.PROD ? productionApiBaseUrl : developmentApiBaseUrl;
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? defaultApiBaseUrl

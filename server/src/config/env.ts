@@ -19,6 +19,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16).default("development_only_change_this_secret"),
   JWT_EXPIRES_IN: z.string().default("8h"),
   CLIENT_URL: z.string().url().default("http://localhost:5173"),
+  CLIENT_URLS: z.string().optional(),
   DEFAULT_DELIVERY_FEE: z.coerce.number().nonnegative().default(5),
   SHOP_NAME: z.string().default("White Angels Apparels"),
   SHOP_PHONE: z.string().optional().default(""),
