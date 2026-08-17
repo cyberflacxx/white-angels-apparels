@@ -11,17 +11,17 @@ import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeadi
 import { useCatalog, useSiteSettings } from "./hooks";
 
 const categoryPlaceholders = [
-  { name: "Women", description: "Clean pieces for confident styling.", image_url: "/images/site/category-women.jpg" },
-  { name: "Men", description: "Modern apparel with a polished finish.", image_url: "/images/site/category-men.jpg" },
-  { name: "Shoes", description: "Strong foundations for every look.", image_url: "/images/site/category-shoes.jpg" },
-  { name: "Accessories", description: "Finishing touches with intention.", image_url: "/images/site/category-accessories.jpg" }
+  { name: "Women", slug: "women", description: "Clean pieces for confident styling.", image_url: "/images/site/category-women.jpg" },
+  { name: "Men", slug: "men", description: "Modern apparel with a polished finish.", image_url: "/images/site/category-men.jpg" },
+  { name: "Shoes", slug: "shoes", description: "Strong foundations for every look.", image_url: "/images/site/category-shoes.jpg" },
+  { name: "Accessories", slug: "accessories", description: "Finishing touches with intention.", image_url: "/images/site/category-accessories.jpg" }
 ];
 
 const whyWhiteAngels = [
-  { emoji: "✨", title: "Quality Selection", copy: "Curated pieces with a polished finish for everyday confidence." },
-  { emoji: "🚚", title: "Reliable Delivery", copy: "Delivery options stay clear from browsing through checkout." },
-  { emoji: "🏪", title: "Easy Collection", copy: "Shop collection remains simple for customers who prefer pickup." },
-  { emoji: "💳", title: "Flexible Payments", copy: "EcoCash verification and cash options stay transparent." }
+  { emoji: "Q", title: "Quality Selection", copy: "Curated pieces with a polished finish for everyday confidence." },
+  { emoji: "D", title: "Reliable Delivery", copy: "Delivery options stay clear from browsing through checkout." },
+  { emoji: "C", title: "Easy Collection", copy: "Shop collection remains simple for customers who prefer pickup." },
+  { emoji: "P", title: "Flexible Payments", copy: "EcoCash verification and cash options stay transparent." }
 ];
 
 export function Home() {
@@ -31,7 +31,10 @@ export function Home() {
   const [stockMessage, setStockMessage] = useState("");
   const [stockError, setStockError] = useState("");
   const [stockSubmitting, setStockSubmitting] = useState(false);
-  const displayCategories = categories.length ? categories : categoryPlaceholders.map((item, index) => ({ ...item, id: `placeholder-${index}`, slug: item.name.toLowerCase() }));
+  const displayCategories = (categories.length ? categories : categoryPlaceholders.map((item, index) => ({ ...item, id: `placeholder-${index}` }))).map((category) => ({
+    ...category,
+    image_url: category.image_url || categoryImageFallback(category.slug, settings)
+  }));
   const socials = getPublicSocialLinks(settings);
 
   async function submitStockAlert(event: FormEvent<HTMLFormElement>) {
@@ -82,7 +85,7 @@ export function Home() {
           <div className="category-grid">
             {displayCategories.slice(0, 4).map((category) => (
               <Link className="category-card" key={category.id} to="/shop">
-                <img loading="lazy" src={category.image_url || "/images/site/category-women.jpg"} alt={category.name} />
+                <img loading="lazy" src={category.image_url || categoryImageFallback(category.slug, settings)} alt={category.name} />
                 <span>
                   <strong>{category.name}</strong>
                   <small>{category.description || "Explore the collection"}</small>
@@ -205,4 +208,19 @@ function Feature({ icon, title, copy }: { icon: any; title: string; copy: string
       <p>{copy}</p>
     </article>
   );
+}
+
+function categoryImageFallback(slug: string, settings: ReturnType<typeof useSiteSettings>["settings"]) {
+  switch (slug) {
+    case "women":
+      return settings.categoryWomen || "/images/site/category-women.jpg";
+    case "men":
+      return settings.categoryMen || "/images/site/category-men.jpg";
+    case "shoes":
+      return settings.categoryShoes || "/images/site/category-shoes.jpg";
+    case "accessories":
+      return settings.categoryAccessories || "/images/site/category-accessories.jpg";
+    default:
+      return "/images/site/category-women.jpg";
+  }
 }

@@ -26,7 +26,11 @@ const mediaSlots = [
   { label: "Track Order Hero", slot: "trackOrderHero", key: "heroTrackOrder" },
   { label: "Product Hero", slot: "productHero", key: "heroProduct" },
   { label: "Admin Login Background", slot: "adminLoginHero", key: "heroAdminLogin" },
-  { label: "Home Promo Banner", slot: "homePromoBanner", key: "homePromoBanner" }
+  { label: "Home Promo Banner", slot: "homePromoBanner", key: "homePromoBanner" },
+  { label: "Category Women", slot: "categoryWomen", key: "categoryWomen" },
+  { label: "Category Men", slot: "categoryMen", key: "categoryMen" },
+  { label: "Category Shoes", slot: "categoryShoes", key: "categoryShoes" },
+  { label: "Category Accessories", slot: "categoryAccessories", key: "categoryAccessories" }
 ] as const;
 
 export function AdminDashboard() {

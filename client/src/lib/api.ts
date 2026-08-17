@@ -77,6 +77,10 @@ export type SiteSettings = {
   heroProduct?: string;
   heroAdminLogin?: string;
   homePromoBanner?: string;
+  categoryWomen?: string;
+  categoryMen?: string;
+  categoryShoes?: string;
+  categoryAccessories?: string;
   openingHours: string;
   ecocashMerchantName: string;
   ecocashMerchantNumber: string;

@@ -14,6 +14,26 @@ const passwordRules = [
   { key: "special", label: "One special character", test: (value: string) => /[!@#$%^&*()_+\-=]/.test(value) }
 ];
 
+function getRequestErrorMessage(requestError: any, fallback: string) {
+  const status = Number(requestError?.response?.status ?? 0);
+  const message = String(requestError?.response?.data?.message ?? "").trim();
+
+  if (!status && requestError?.message) return "Unable to connect to the registration service.";
+
+  const normalized = message.toLowerCase();
+  if (normalized.includes("invalid admin registration key")) return "Invalid admin registration key.";
+  if (normalized.includes("password must be at least 8 characters")) return "Password does not meet the security requirements.";
+  if (normalized.includes("administrator account already exists")) return "An account with this email already exists.";
+  if (normalized.includes("verification code expired")) return "The verification code has expired.";
+  if (normalized.includes("verification attempts exceeded")) return "Too many verification attempts. Request a new code.";
+  if (normalized.includes("please wait before requesting another verification code")) return "Please wait before requesting another verification code.";
+  if (normalized.includes("email service is currently unavailable")) return "Email service is currently unavailable. Please try again later.";
+  if (status === 429) return "Too many requests. Please wait and try again.";
+  if (status >= 500) return "Email service is currently unavailable. Please try again later.";
+
+  return message || fallback;
+}
+
 export function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -113,7 +133,7 @@ export function AdminRegister() {
         }
       });
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Registration could not be completed.");
+      setError(getRequestErrorMessage(requestError, "Registration could not be completed."));
     } finally {
       setSubmitting(false);
     }
@@ -207,7 +227,7 @@ export function AdminRegisterVerify() {
       setMessage(response.data.message || "Account Created Successfully");
       window.setTimeout(() => navigate("/admin/login"), 1200);
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Verification failed.");
+      setError(getRequestErrorMessage(requestError, "Verification failed."));
     } finally {
       setSubmitting(false);
     }
@@ -221,7 +241,7 @@ export function AdminRegisterVerify() {
       setMaskedEmail(response.data.maskedEmail ?? maskedEmail);
       setMessage(response.data.message || "Verification code resent.");
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "The verification code could not be resent.");
+      setError(getRequestErrorMessage(requestError, "The verification code could not be resent."));
     }
   }
 

@@ -7,7 +7,13 @@ const migrationsDir = path.resolve(process.cwd(), "../database/migrations");
 async function main() {
   const client = await requirePool().connect();
   try {
-    await client.query(`create schema if not exists ${appSchema}`);
+    const schemaExists = await client.query<{ exists: boolean }>(
+      "select exists(select 1 from pg_namespace where nspname = $1) as exists",
+      [appSchema]
+    );
+    if (!schemaExists.rows[0]?.exists) {
+      await client.query(`create schema ${appSchema}`);
+    }
     await client.query(`set search_path to ${searchPath}`);
     await client.query(`create table if not exists ${appSchema}.schema_migrations (filename text primary key, applied_at timestamptz not null default now())`);
     const schemaCheck = await client.query("select current_schema() as schema");

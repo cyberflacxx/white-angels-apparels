@@ -4,14 +4,14 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { env } from "../config/env.js";
-import { query } from "../db/pool.js";
+import { query, requirePool } from "../db/pool.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { AppError } from "../middleware/error.js";
 import { productUpload, siteUpload } from "../middleware/upload.js";
 import { cancelOrder } from "../services/orderService.js";
 import { getSiteSettings, updateSiteSettings } from "../services/siteSettingsService.js";
 import { canAttemptOtp, canResendOtp, generateOtpCode, hashOtpCode, maskEmailAddress, matchesAdminRegistrationKey, otpExpiresAt, validateAdminPassword } from "../services/authRegistrationService.js";
-import { getRequiredSmtpVariables, sendAdminOtpEmail } from "../services/emailService.js";
+import { sendAdminOtpEmail } from "../services/emailService.js";
 import { canReceiveStockAlert, filterEligibleSubscribers } from "../services/subscriberService.js";
 import { getRequiredWhatsAppVariables, sendStockAlertMessage } from "../services/whatsappService.js";
 import { listCategories, listProducts } from "../services/catalogService.js";
@@ -21,6 +21,22 @@ export const adminRoutes = Router();
 
 const registrationLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8 });
 const otpVerifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 20 });
+
+async function sendRegistrationOtpOrThrow(email: string, otpCode: string) {
+  try {
+    const emailResult = await sendAdminOtpEmail({
+      email,
+      maskedEmail: maskEmailAddress(email),
+      otpCode
+    });
+
+    if (!emailResult.ok) {
+      throw new AppError(503, "Email service is currently unavailable. Please try again later.");
+    }
+  } catch {
+    throw new AppError(503, "Email service is currently unavailable. Please try again later.");
+  }
+}
 
 adminRoutes.post("/auth/login", async (req, res, next) => {
   try {
@@ -90,49 +106,51 @@ adminRoutes.post("/auth/register", registrationLimiter, async (req, res, next) =
     const passwordValidation = validateAdminPassword(password);
     if (!passwordValidation.valid) throw new AppError(400, passwordValidation.message);
     if (password !== confirmPassword) throw new AppError(400, "Confirm password must match.");
-    if (!matchesAdminRegistrationKey(registrationKey)) throw new AppError(400, "Registration could not be completed.");
+    if (!matchesAdminRegistrationKey(registrationKey)) throw new AppError(400, "Invalid admin registration key.");
 
-    const duplicateAdmin = await query("select 1 from admins where lower(email) = $1 limit 1", [email]);
-    if (duplicateAdmin.rows[0]) throw new AppError(409, "An administrator account already exists for this email.");
+    const client = await requirePool().connect();
+    let verificationId = "";
+    try {
+      await client.query("begin");
 
-    const otpCode = generateOtpCode();
-    const passwordHash = await bcrypt.hash(password, 12);
-    const otpHash = hashOtpCode(otpCode);
-    const verificationResult = await query(
-      `insert into admin_email_verifications
-        (email, first_name, surname, password_hash, otp_hash, expires_at, attempt_count, resend_count, last_sent_at, verified_at, updated_at)
-       values ($1, $2, $3, $4, $5, $6, 0, 0, now(), null, now())
-       on conflict ((lower(email))) where verified_at is null
-       do update set
-         first_name = excluded.first_name,
-         surname = excluded.surname,
-         password_hash = excluded.password_hash,
-         otp_hash = excluded.otp_hash,
-         expires_at = excluded.expires_at,
-         attempt_count = 0,
-         resend_count = 0,
-         last_sent_at = now(),
-         verified_at = null,
-         updated_at = now()
-       returning id, email`,
-      [email, firstName, surname, passwordHash, otpHash, otpExpiresAt()]
-    );
+      const duplicateAdmin = await client.query("select 1 from admins where lower(email) = $1 limit 1", [email]);
+      if (duplicateAdmin.rows[0]) throw new AppError(409, "An administrator account already exists for this email.");
 
-    const emailResult = await sendAdminOtpEmail({
-      email,
-      maskedEmail: maskEmailAddress(email),
-      otpCode
-    });
-
-    if (!emailResult.ok) {
-      throw new AppError(
-        503,
-        `Admin email verification is ready, but SMTP is not configured. Required variables: ${getRequiredSmtpVariables().join(", ")}`
+      const otpCode = generateOtpCode();
+      const passwordHash = await bcrypt.hash(password, 12);
+      const otpHash = hashOtpCode(otpCode);
+      const verificationResult = await client.query(
+        `insert into admin_email_verifications
+          (email, first_name, surname, password_hash, otp_hash, expires_at, attempt_count, resend_count, last_sent_at, verified_at, updated_at)
+         values ($1, $2, $3, $4, $5, $6, 0, 0, now(), null, now())
+         on conflict ((lower(email))) where verified_at is null
+         do update set
+           first_name = excluded.first_name,
+           surname = excluded.surname,
+           password_hash = excluded.password_hash,
+           otp_hash = excluded.otp_hash,
+           expires_at = excluded.expires_at,
+           attempt_count = 0,
+           resend_count = 0,
+           last_sent_at = now(),
+           verified_at = null,
+           updated_at = now()
+         returning id`,
+        [email, firstName, surname, passwordHash, otpHash, otpExpiresAt()]
       );
+
+      await sendRegistrationOtpOrThrow(email, otpCode);
+      await client.query("commit");
+      verificationId = String(verificationResult.rows[0]?.id ?? "");
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
     }
 
     res.status(202).json({
-      verificationId: verificationResult.rows[0]?.id,
+      verificationId,
       email,
       maskedEmail: maskEmailAddress(email),
       message: "Verification code sent."
@@ -147,45 +165,45 @@ adminRoutes.post("/auth/register/resend", registrationLimiter, async (req, res, 
     const email = String(req.body?.email ?? "").trim().toLowerCase();
     if (!email) throw new AppError(400, "Email is required.");
 
-    const pending = await query(
-      "select id, email, first_name, surname, password_hash, attempt_count, resend_count, last_sent_at, verified_at from admin_email_verifications where lower(email) = $1 order by created_at desc limit 1",
-      [email]
-    );
-    const verification = pending.rows[0] as {
-      id: string;
-      email: string;
-      first_name: string;
-      surname: string;
-      password_hash: string;
-      attempt_count: number;
-      resend_count: number;
-      last_sent_at: Date;
-      verified_at: Date | null;
-    } | undefined;
+    const client = await requirePool().connect();
+    try {
+      await client.query("begin");
 
-    if (!verification || verification.verified_at) throw new AppError(404, "No pending verification was found for that email.");
-    if (!canResendOtp(verification.last_sent_at ? new Date(verification.last_sent_at) : null)) {
-      throw new AppError(429, "Please wait before requesting another verification code.");
-    }
-
-    const otpCode = generateOtpCode();
-    const otpHash = hashOtpCode(otpCode);
-    await query(
-      "update admin_email_verifications set otp_hash = $1, expires_at = $2, resend_count = resend_count + 1, attempt_count = 0, last_sent_at = now(), updated_at = now() where id = $3",
-      [otpHash, otpExpiresAt(), verification.id]
-    );
-
-    const emailResult = await sendAdminOtpEmail({
-      email,
-      maskedEmail: maskEmailAddress(email),
-      otpCode
-    });
-
-    if (!emailResult.ok) {
-      throw new AppError(
-        503,
-        `Admin email verification is ready, but SMTP is not configured. Required variables: ${getRequiredSmtpVariables().join(", ")}`
+      const pending = await client.query(
+        "select id, email, first_name, surname, password_hash, attempt_count, resend_count, last_sent_at, verified_at from admin_email_verifications where lower(email) = $1 order by created_at desc limit 1",
+        [email]
       );
+      const verification = pending.rows[0] as {
+        id: string;
+        email: string;
+        first_name: string;
+        surname: string;
+        password_hash: string;
+        attempt_count: number;
+        resend_count: number;
+        last_sent_at: Date;
+        verified_at: Date | null;
+      } | undefined;
+
+      if (!verification || verification.verified_at) throw new AppError(404, "No pending verification was found for that email.");
+      if (!canResendOtp(verification.last_sent_at ? new Date(verification.last_sent_at) : null)) {
+        throw new AppError(429, "Please wait before requesting another verification code.");
+      }
+
+      const otpCode = generateOtpCode();
+      const otpHash = hashOtpCode(otpCode);
+      await client.query(
+        "update admin_email_verifications set otp_hash = $1, expires_at = $2, resend_count = resend_count + 1, attempt_count = 0, last_sent_at = now(), updated_at = now() where id = $3",
+        [otpHash, otpExpiresAt(), verification.id]
+      );
+
+      await sendRegistrationOtpOrThrow(email, otpCode);
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
     }
 
     res.json({ maskedEmail: maskEmailAddress(email), message: "Verification code sent." });
@@ -517,7 +535,11 @@ adminRoutes.post("/settings/media/:slot", siteUpload.single("image"), async (req
       trackOrderHero: "heroTrackOrder",
       productHero: "heroProduct",
       adminLoginHero: "heroAdminLogin",
-      homePromoBanner: "homePromoBanner"
+      homePromoBanner: "homePromoBanner",
+      categoryWomen: "categoryWomen",
+      categoryMen: "categoryMen",
+      categoryShoes: "categoryShoes",
+      categoryAccessories: "categoryAccessories"
     } as const;
 
     const slot = String(req.params.slot ?? "");

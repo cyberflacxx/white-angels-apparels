@@ -32,6 +32,7 @@ const corsOptions: CorsOptions = {
 
 export function createApp() {
   const app = express();
+  app.set("trust proxy", 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cors(corsOptions));
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 300 }));
