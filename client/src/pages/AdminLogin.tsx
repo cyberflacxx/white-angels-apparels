@@ -16,11 +16,12 @@ const passwordRules = [
 
 function getRequestErrorMessage(requestError: any, fallback: string) {
   const status = Number(requestError?.response?.status ?? 0);
-  const message = String(requestError?.response?.data?.message ?? "").trim();
+  const message = extractErrorText(requestError?.response?.data);
 
-  if (!status && requestError?.message) return "Unable to connect to the registration service.";
+  if (!requestError?.response) return "Unable to connect to the registration service.";
 
   const normalized = message.toLowerCase();
+  if (status === 401 && normalized.includes("invalid credentials")) return "Invalid admin email or password.";
   if (normalized.includes("invalid admin registration key")) return "Invalid admin registration key.";
   if (normalized.includes("password must be at least 8 characters")) return "Password does not meet the security requirements.";
   if (normalized.includes("administrator account already exists")) return "An account with this email already exists.";
@@ -28,10 +29,50 @@ function getRequestErrorMessage(requestError: any, fallback: string) {
   if (normalized.includes("verification attempts exceeded")) return "Too many verification attempts. Request a new code.";
   if (normalized.includes("please wait before requesting another verification code")) return "Please wait before requesting another verification code.";
   if (normalized.includes("email service is currently unavailable")) return "Email service is currently unavailable. Please try again later.";
+  if (status === 400 || status === 401 || status === 403 || status === 409 || status === 422) return message || fallback;
   if (status === 429) return "Too many requests. Please wait and try again.";
   if (status >= 500) return "Email service is currently unavailable. Please try again later.";
 
   return message || fallback;
+}
+
+function extractErrorText(payload: unknown): string {
+  if (!payload || typeof payload !== "object") return "";
+
+  const data = payload as {
+    message?: unknown;
+    error?: unknown;
+    errors?: unknown;
+  };
+
+  const direct = readSafeText(data.message) || readSafeText(data.error);
+  if (direct) return direct;
+
+  if (Array.isArray(data.errors)) {
+    const messages = data.errors
+      .map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry === "object") {
+          return readSafeText((entry as { message?: unknown }).message);
+        }
+        return "";
+      })
+      .filter(Boolean);
+
+    return messages.join(". ");
+  }
+
+  return "";
+}
+
+function readSafeText(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const text = value.trim();
+  if (!text) return "";
+  if (/select\s+.+from|insert\s+into|update\s+.+set|delete\s+from/i.test(text)) return "";
+  if (/database|postgres|jwt_secret|smtp_password|admin_registration_key/i.test(text)) return "";
+  if (/[A-Za-z]:\\|\/opt\/|\/root\/|stack/i.test(text)) return "";
+  return text;
 }
 
 export function AdminLogin() {
@@ -51,7 +92,7 @@ export function AdminLogin() {
       setAdminToken(response.data.token);
       navigate("/admin");
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Login failed. Check the admin email and password.");
+      setError(getRequestErrorMessage(requestError, "Login could not be completed."));
     } finally {
       setSubmitting(false);
     }
@@ -123,9 +164,51 @@ export function AdminRegister() {
 
   async function register() {
     setError("");
+
+    const firstName = form.firstName.trim();
+    const surname = form.surname.trim();
+    const email = form.email.trim().toLowerCase();
+    const password = form.password;
+    const registrationKey = form.registrationKey;
+
+    if (!firstName) {
+      setError("First Name is required.");
+      return;
+    }
+    if (!surname) {
+      setError("Surname is required.");
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("A valid email address is required.");
+      return;
+    }
+    if (!password) {
+      setError("Password is required.");
+      return;
+    }
+    if (passwordRules.some((rule) => !rule.test(password))) {
+      setError("Password does not meet the security requirements.");
+      return;
+    }
+    if (password !== form.confirmPassword) {
+      setError("Confirm Password must match.");
+      return;
+    }
+    if (!registrationKey.trim()) {
+      setError("Admin Registration Key is required.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const response = await api.post("/admin/auth/register", form);
+      const response = await api.post("/admin/auth/register", {
+        firstName,
+        surname,
+        email,
+        password,
+        registrationKey: registrationKey.trim()
+      });
       navigate("/admin/register/verify", {
         state: {
           email: response.data.email,

@@ -88,7 +88,6 @@ adminRoutes.post("/auth/register", registrationLimiter, async (req, res, next) =
       surname?: string;
       email?: string;
       password?: string;
-      confirmPassword?: string;
       registrationKey?: string;
     };
 
@@ -96,16 +95,14 @@ adminRoutes.post("/auth/register", registrationLimiter, async (req, res, next) =
     const surname = body.surname?.trim() ?? "";
     const email = body.email?.trim().toLowerCase() ?? "";
     const password = body.password ?? "";
-    const confirmPassword = body.confirmPassword ?? "";
     const registrationKey = body.registrationKey ?? "";
 
-    if (!firstName || !surname || !email || !password || !confirmPassword || !registrationKey) {
+    if (!firstName || !surname || !email || !password || !registrationKey) {
       throw new AppError(400, "Complete every registration field before continuing.");
     }
 
     const passwordValidation = validateAdminPassword(password);
     if (!passwordValidation.valid) throw new AppError(400, passwordValidation.message);
-    if (password !== confirmPassword) throw new AppError(400, "Confirm password must match.");
     if (!matchesAdminRegistrationKey(registrationKey)) throw new AppError(400, "Invalid admin registration key.");
 
     const client = await requirePool().connect();

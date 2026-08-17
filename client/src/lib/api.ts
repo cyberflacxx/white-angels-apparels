@@ -1,14 +1,15 @@
 import axios, { AxiosHeaders } from "axios";
 
-const developmentApiBaseUrl = "http://localhost:5000/api/v1";
-const configuredApiBaseUrl = import.meta.env.VITE_API_URL?.trim() ?? "";
+const developmentApiBaseUrl = "http://localhost:4100/api/v1";
+const configuredApiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL?.trim() ?? "");
 const defaultApiBaseUrl = import.meta.env.DEV ? developmentApiBaseUrl : "";
 
 export const apiBaseUrl = configuredApiBaseUrl || defaultApiBaseUrl;
 export const hasApiBaseUrl = Boolean(apiBaseUrl);
 
 export const api = axios.create({
-  baseURL: apiBaseUrl
+  baseURL: apiBaseUrl,
+  timeout: 15_000
 });
 
 api.interceptors.request.use((config) => {
@@ -133,4 +134,8 @@ export function isCategory(value: unknown): value is Category {
       typeof (value as Category).name === "string" &&
       typeof (value as Category).slug === "string"
   );
+}
+
+function normalizeApiBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
 }
