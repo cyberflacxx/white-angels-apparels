@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faBoxesStacked, faChartLine, faGear, faLayerGroup, faRightFromBracket, faShirt, faShoppingCart, faUsers, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 
 const links = [
   ["Dashboard", "/admin", faChartLine],
@@ -16,6 +16,13 @@ const links = [
 
 export function AdminLayout() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  function logout() {
+    window.localStorage.removeItem("wa-admin-token");
+    navigate("/admin/login");
+  }
+
   return (
     <main className={open ? "admin-shell admin-shell--open" : "admin-shell"}>
       <aside>
@@ -28,7 +35,7 @@ export function AdminLayout() {
             <FontAwesomeIcon icon={icon} /> {label}
           </NavLink>
         ))}
-        <button className="admin-logout">
+        <button className="admin-logout" onClick={logout}>
           <FontAwesomeIcon icon={faRightFromBracket} /> Logout
         </button>
       </aside>
