@@ -1,9 +1,10 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faBoxOpen, faGem, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faGem, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { faFacebookF, faInstagram, faTiktok, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import { Link } from "react-router-dom";
 import { Hero } from "../components/Hero";
 import { ProductCard } from "../components/ProductCard";
+import { getPublicSocialLinks, WHATSAPP_CHANNEL_LABEL } from "../lib/site";
 import { AppLink, Container, EmptyState, Section, SectionHeading } from "../components/UI";
 import { useCatalog, useSiteSettings } from "./hooks";
 
@@ -15,15 +16,10 @@ const categoryPlaceholders = [
 ];
 
 export function Home() {
-  const { products, categories } = useCatalog();
-  const settings = useSiteSettings();
+  const { products, categories, catalogError } = useCatalog();
+  const { settings, settingsError } = useSiteSettings();
   const displayCategories = categories.length ? categories : categoryPlaceholders.map((item, index) => ({ ...item, id: `placeholder-${index}`, slug: item.name.toLowerCase() }));
-  const socials = [
-    { href: settings.instagram, icon: faInstagram, label: "Instagram" },
-    { href: settings.facebook, icon: faFacebookF, label: "Facebook" },
-    { href: settings.tiktok, icon: faTiktok, label: "TikTok" },
-    { href: settings.whatsapp, icon: faWhatsapp, label: "WhatsApp" }
-  ].filter((item) => item.href);
+  const socials = getPublicSocialLinks(settings);
 
   return (
     <main>
@@ -36,6 +32,7 @@ export function Home() {
 
       <Section>
         <Container>
+          {(catalogError || settingsError) && <div className="status-banner" role="status">{catalogError || settingsError}</div>}
           <SectionHeading eyebrow="Shop by style" title="Featured categories" copy="Image-led category cards keep the storefront ready for real White Angels collections." action={<Link to="/shop">Browse all <FontAwesomeIcon icon={faArrowRight} /></Link>} />
           <div className="category-grid">
             {displayCategories.slice(0, 4).map((category) => (
@@ -98,16 +95,15 @@ export function Home() {
             </div>
           </div>
           <div>
-            <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="Only configured links are shown." />
-            {socials.length ? (
-              <div className="socials socials--large">
-                {socials.map((item) => (
-                  <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noreferrer"><FontAwesomeIcon icon={item.icon} /></a>
-                ))}
-              </div>
-            ) : (
-              <EmptyState icon={faBoxOpen} title="Social links not configured" copy="Add URLs in site settings to show public social buttons." />
-            )}
+            <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="The confirmed public social channel is WhatsApp. Other channels stay hidden until real URLs are supplied." />
+            <div className="socials socials--large">
+              {socials.map((item) => (
+                <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer">
+                  <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "instagram" ? faInstagram : item.platform === "facebook" ? faFacebookF : faTiktok} />
+                </a>
+              ))}
+            </div>
+            <p className="social-note">{WHATSAPP_CHANNEL_LABEL} is live now. Facebook, Instagram, and TikTok will appear automatically when their real URLs are configured.</p>
           </div>
         </Container>
       </Section>

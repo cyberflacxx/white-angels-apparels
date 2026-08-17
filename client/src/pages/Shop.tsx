@@ -7,7 +7,7 @@ import { Container, EmptyState, Section, SelectField } from "../components/UI";
 import { useCatalog } from "./hooks";
 
 export function Shop() {
-  const { products, categories } = useCatalog();
+  const { products, categories, catalogError } = useCatalog();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("Newest");
@@ -22,6 +22,7 @@ export function Shop() {
       <Hero title="Find your next look." subtitle="Search, filter, and shop White Angels pieces without clutter." image="/images/hero-shop.jpg" compact />
       <Section>
         <Container>
+          {catalogError && <div className="status-banner" role="status">{catalogError}</div>}
           <div className="breadcrumb">Home / Shop</div>
           <div className="shop-heading">
             <div>

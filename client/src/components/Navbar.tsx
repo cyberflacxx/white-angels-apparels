@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faCartShopping, faMagnifyingGlass, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faCartShopping, faMagnifyingGlass, faUserShield, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useCart } from "../context/CartContext";
@@ -41,6 +41,9 @@ export function Navbar() {
             {label}
           </NavLink>
         ))}
+        <NavLink className="navlinks__admin" to="/admin/login" onClick={() => setOpen(false)}>
+          <FontAwesomeIcon icon={faUserShield} /> Admin
+        </NavLink>
       </nav>
       <div className="nav-actions">
         <Link to="/shop" className="icon-button desktop-only" aria-label="Search products">

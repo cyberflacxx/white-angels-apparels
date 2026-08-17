@@ -44,7 +44,7 @@ export function AdminProducts() {
   return (
     <section className="admin-page">
       <div className="admin-header admin-header--row">
-        <div><h1>Products</h1><p>Create and manage catalogue items.</p></div>
+        <div><h1>Products</h1><p>Add products, edit details, manage images, change prices, update stock, and deactivate items from one place.</p></div>
         <Link className="btn btn--primary" to="/admin/products/new"><FontAwesomeIcon icon={faPlus} /> Add Product</Link>
       </div>
       <AdminTable title="" emptyTitle="No products yet" columns={["Image", "Name", "SKU", "Category", "Price", "Stock", "Status", "Featured", "Actions"]} embedded />
@@ -57,6 +57,9 @@ export function ProductForm() {
     <section className="admin-page">
       <AdminHeader title="Product Form" copy="Add product details and prepare image assets." />
       <div className="admin-panel form-stack">
+        <div className="admin-helper-list" aria-label="Product management actions">
+          {["Add Product", "Edit Product", "Upload Images", "Change Price", "Update Stock", "Deactivate Product"].map((item) => <span key={item}>{item}</span>)}
+        </div>
         <div className="form-grid">
           {["Name", "Slug", "SKU", "Price", "Previous price", "Stock", "Low-stock threshold", "Category"].map((item) => <Field key={item} label={item} />)}
         </div>

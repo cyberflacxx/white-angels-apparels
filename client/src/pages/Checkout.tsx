@@ -10,7 +10,7 @@ import { useSiteSettings } from "./hooks";
 
 export function Checkout() {
   const { items, subtotal, clearCart } = useCart();
-  const settings = useSiteSettings();
+  const { settings } = useSiteSettings();
   const navigate = useNavigate();
   const [fulfilmentMethod, setFulfilment] = useState<"HOME_DELIVERY" | "SHOP_COLLECTION">("HOME_DELIVERY");
   const [paymentMethod, setPayment] = useState<"ECOCASH" | "CASH">("ECOCASH");

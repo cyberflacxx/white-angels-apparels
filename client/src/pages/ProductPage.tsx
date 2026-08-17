@@ -6,24 +6,65 @@ import { Hero } from "../components/Hero";
 import { ProductCard } from "../components/ProductCard";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeading } from "../components/UI";
 import { useCart } from "../context/CartContext";
-import { api, type Product } from "../lib/api";
+import { api, hasApiBaseUrl, isProduct, type Product } from "../lib/api";
 import { useCatalog, useSiteSettings } from "./hooks";
 
 export function ProductPage() {
   const { slug } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const { addItem } = useCart();
   const { products } = useCatalog();
-  const settings = useSiteSettings();
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
-    if (slug) {
-      setNotFound(false);
-      void api.get<Product>(`/products/${slug}`).then((res) => setProduct(res.data)).catch(() => setNotFound(true));
+    let active = true;
+
+    if (!slug) return () => {
+      active = false;
+    };
+
+    setNotFound(false);
+    setProduct(null);
+    setLoadError("");
+
+    if (!hasApiBaseUrl) {
+      setLoadError("This product cannot be loaded because VITE_API_URL is not configured for this production build.");
+      return () => {
+        active = false;
+      };
     }
+
+    void api
+      .get<unknown>(`/products/${slug}`)
+      .then((res) => {
+        if (!active) return;
+        if (!isProduct(res.data)) {
+          setLoadError("The product response was invalid, so the item could not be rendered.");
+          return;
+        }
+
+        setProduct(res.data);
+      })
+      .catch(() => {
+        if (active) setNotFound(true);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [slug]);
+
+  if (loadError) {
+    return (
+      <main>
+        <Hero title="Product unavailable" subtitle={loadError} image="/images/hero-product.jpg" compact />
+        <Section><Container><EmptyState title="Product unavailable" copy="Return to the shop to browse the current catalogue." action={<AppLink to="/shop">Back to Shop</AppLink>} /></Container></Section>
+      </main>
+    );
+  }
 
   if (notFound) {
     return (

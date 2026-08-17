@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLock } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash, faLock } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Hero } from "../components/Hero";
@@ -10,6 +10,7 @@ export function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   async function login() {
     setError("");
@@ -33,7 +34,20 @@ export function AdminLogin() {
           </div>
           <div className="form-stack">
             <Field label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            <Field label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <label className="field password-field">
+              <span>Password</span>
+              <div className="password-field__control">
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+                <button
+                  type="button"
+                  className="password-field__toggle"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
+              </div>
+            </label>
             {error && <div className="error-card">{error}</div>}
             <AppButton onClick={login}>Login</AppButton>
           </div>

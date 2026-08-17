@@ -5,7 +5,7 @@ import { AppLink, Container, Section, SectionHeading } from "../components/UI";
 import { useSiteSettings } from "./hooks";
 
 export function About() {
-  const settings = useSiteSettings();
+  const { settings } = useSiteSettings();
   return (
     <main>
       <Hero title="The White Angels Story." subtitle="A clean, premium fashion experience ready for the real brand narrative and photography." image="/images/hero-about.jpg" compact />
