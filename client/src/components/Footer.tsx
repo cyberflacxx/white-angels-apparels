@@ -77,7 +77,14 @@ export function Footer() {
           <div className="socials">
             {socials.map((item) => (
               item.enabled ? (
-                <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={item.href}
+                  key={item.label}
+                  aria-label={item.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`social-link social-link--${item.platform}`}
+                >
                   <FontAwesomeIcon icon={socialIcons[item.platform]} />
                 </a>
               ) : (

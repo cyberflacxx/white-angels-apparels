@@ -62,27 +62,29 @@ export function AdminLayout() {
             <strong>Welcome, {account?.first_name || "Admin"}</strong>
             <span>User Account</span>
           </div>
-          <button
-            type="button"
-            className="admin-theme-toggle"
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
-          >
-            <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
-          </button>
-          <div className="admin-account-menu">
-            <button type="button" className="admin-account-menu__trigger" onClick={() => setAccountOpen((value) => !value)}>
-              <FontAwesomeIcon icon={faUserCog} />
-              <span>User Account</span>
-              <FontAwesomeIcon icon={faChevronDown} />
+          <div className="admin-topbar__actions">
+            <button
+              type="button"
+              className="admin-theme-toggle"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+            >
+              <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
             </button>
-            {accountOpen && (
-              <div className="admin-account-menu__panel">
-                <Link to="/admin/account" onClick={() => setAccountOpen(false)}>User Account</Link>
-                <Link to="/" onClick={() => setAccountOpen(false)}><FontAwesomeIcon icon={faStore} /> Back to Main Site</Link>
-                <button type="button" onClick={logout}><FontAwesomeIcon icon={faRightFromBracket} /> Logout</button>
-              </div>
-            )}
+            <div className="admin-account-menu">
+              <button type="button" className="admin-account-menu__trigger" onClick={() => setAccountOpen((value) => !value)}>
+                <FontAwesomeIcon icon={faUserCog} />
+                <span>User Account</span>
+                <FontAwesomeIcon icon={faChevronDown} />
+              </button>
+              {accountOpen && (
+                <div className="admin-account-menu__panel">
+                  <Link className="admin-account-menu__link" to="/admin/account" onClick={() => setAccountOpen(false)}>User Account</Link>
+                  <Link className="admin-account-menu__link" to="/" onClick={() => setAccountOpen(false)}><FontAwesomeIcon icon={faStore} /> Back to Main Site</Link>
+                  <button className="admin-account-menu__logout" type="button" onClick={logout}><FontAwesomeIcon icon={faRightFromBracket} /> Logout</button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <Outlet />

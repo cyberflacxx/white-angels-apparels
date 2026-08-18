@@ -50,14 +50,14 @@ export function Navbar() {
         </NavLink>
       </nav>
       <div className="nav-actions">
-        <Link to="/shop" className="icon-button desktop-only" aria-label="Search products">
+        <Link to="/shop" className="navbar-icon-button desktop-only" aria-label="Search products">
           <FontAwesomeIcon icon={faMagnifyingGlass} />
         </Link>
-        <NavLink to="/cart" className="icon-button cart-link" aria-label="View cart" onClick={() => setOpen(false)}>
+        <NavLink to="/cart" className="navbar-icon-button cart-link" aria-label="View cart" onClick={() => setOpen(false)}>
           <FontAwesomeIcon icon={faCartShopping} />
           <span>{count}</span>
         </NavLink>
-        <button className="icon-button mobile-only" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close navigation menu" : "Open navigation menu"}>
+        <button className="navbar-icon-button mobile-only" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close navigation menu" : "Open navigation menu"}>
           <FontAwesomeIcon icon={open ? faXmark : faBars} />
         </button>
       </div>

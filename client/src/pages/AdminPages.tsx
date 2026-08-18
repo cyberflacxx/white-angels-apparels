@@ -50,8 +50,8 @@ export function AdminDashboard() {
     { label: "Today's Revenue", value: formatMoney(dashboard.cards.todaysSales), icon: faDollarSign, tone: "success" },
     { label: "All Orders", value: String(dashboard.cards.totalOrders), icon: faShoppingCart, tone: "primary" },
     { label: "Pending Orders", value: String(dashboard.cards.pendingOrders), icon: faChartLine, tone: "warning" },
-    { label: "Awaiting EcoCash Review", value: String(dashboard.cards.awaitingPaymentVerification), icon: faMoneyBillWave, tone: "amber" },
-    { label: "Low Stock", value: String(dashboard.cards.lowStockProducts), icon: faTriangleExclamation, tone: "danger" },
+    { label: "Awaiting EcoCash Review", value: String(dashboard.cards.awaitingPaymentVerification), icon: faMoneyBillWave, tone: "teal" },
+    { label: "Low Stock", value: String(dashboard.cards.lowStockProducts), icon: faTriangleExclamation, tone: "orange" },
     { label: "Subscribers", value: String(dashboard.cards.totalSubscribers), icon: faUsers, tone: "accent" }
   ] : [];
   const chartData = {
