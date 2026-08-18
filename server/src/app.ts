@@ -8,6 +8,7 @@ import type { CorsOptions } from "cors";
 import { env } from "./config/env.js";
 import { errorHandler, notFound } from "./middleware/error.js";
 import { adminRoutes } from "./routes/adminRoutes.js";
+import { posRoutes } from "./routes/posRoutes.js";
 import { publicRoutes } from "./routes/publicRoutes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,6 +42,7 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true, name: "White Angels Apparels API" }));
   app.use("/api/v1", publicRoutes);
   app.use("/api/v1/admin", adminRoutes);
+  app.use("/api/v1/pos", posRoutes);
   app.use(notFound);
   app.use(errorHandler);
   return app;

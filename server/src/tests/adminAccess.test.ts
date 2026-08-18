@@ -7,4 +7,9 @@ describe("admin authorization", () => {
     const response = await request(createApp()).get("/api/v1/admin/dashboard");
     expect(response.status).toBe(401);
   });
+
+  it("blocks protected POS endpoints without a JWT", async () => {
+    const response = await request(createApp()).get("/api/v1/pos/products");
+    expect(response.status).toBe(401);
+  });
 });
