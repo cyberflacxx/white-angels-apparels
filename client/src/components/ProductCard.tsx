@@ -3,13 +3,15 @@ import { faCartShopping, faEye } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import type { Product } from "../lib/api";
+import { resolveMediaUrl } from "../lib/media";
 
 export function ProductCard({ product }: { product: Product }) {
   const { addItem } = useCart();
+  const imageUrl = resolveMediaUrl(product.image_url) || "/images/site/placeholder-product.jpg";
   return (
     <article className="product-card">
       <Link className="product-card__media" to={`/product/${product.slug}`} aria-label={`View ${product.name}`}>
-        <img loading="lazy" src={product.image_url || "/images/site/placeholder-product.jpg"} alt={product.name} />
+        <img loading="lazy" src={imageUrl} alt={product.name} />
       </Link>
       <div className="product-card__body">
         <p className="product-card__category">{product.category_name || "Collection"}</p>

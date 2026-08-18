@@ -6,6 +6,7 @@ import { Hero } from "../components/Hero";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, TextAreaField } from "../components/UI";
 import { useCart } from "../context/CartContext";
 import { api } from "../lib/api";
+import { resolveMediaUrl } from "../lib/media";
 import { useSiteSettings } from "./hooks";
 
 export function Checkout() {
@@ -86,7 +87,12 @@ export function Checkout() {
           </div>
           <aside className="summary">
             <h2>Review</h2>
-            {items.map((item) => <p key={item.product.id}><span>{item.quantity} x {item.product.name}</span><strong>${(Number(item.product.price) * item.quantity).toFixed(2)}</strong></p>)}
+            {items.map((item) => (
+              <div key={item.product.id} className="summary-product">
+                <img src={resolveMediaUrl(item.product.image_url) || "/images/site/placeholder-product.jpg"} alt={item.product.name} />
+                <p><span>{item.quantity} x {item.product.name}</span><strong>${(Number(item.product.price) * item.quantity).toFixed(2)}</strong></p>
+              </div>
+            ))}
             <p><span>Subtotal</span><strong>${subtotal.toFixed(2)}</strong></p>
             <p><span>Delivery</span><strong>${deliveryFee.toFixed(2)}</strong></p>
             <p className="summary__total"><span>Total</span><strong>${total.toFixed(2)}</strong></p>

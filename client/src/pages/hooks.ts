@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, hasApiBaseUrl, isCategory, isProduct, type AdminAccount, type Category, type Product, type SiteSettings, type Subscriber } from "../lib/api";
+import { normalizeCategoryMedia, normalizeProductMedia, normalizeSiteSettingsMedia } from "../lib/media";
 import { WHATSAPP_CHANNEL_URL } from "../lib/site";
 
 export function useCatalog() {
@@ -29,8 +30,8 @@ export function useCatalog() {
         const nextProducts = readList(productsResult, isProduct);
         const nextCategories = readList(categoriesResult, isCategory);
 
-        setProducts(nextProducts);
-        setCategories(nextCategories);
+        setProducts(nextProducts.map(normalizeProductMedia));
+        setCategories(nextCategories.map(normalizeCategoryMedia));
 
         const failures = [
           getListFailure(productsResult, nextProducts.length > 0 || isResolvedEmptyArray(productsResult), "products"),
@@ -198,10 +199,10 @@ function isResolvedEmptyArray(result: PromiseSettledResult<{ data: unknown }>) {
   return result.status === "fulfilled" && Array.isArray(result.value.data) && result.value.data.length === 0;
 }
 
-function normalizeSiteSettings(value: unknown): SiteSettings {
+export function normalizeSiteSettings(value: unknown): SiteSettings {
   const payload = value && typeof value === "object" ? value as Partial<SiteSettings> : {};
 
-  return {
+  return normalizeSiteSettingsMedia({
     shopName: readString(payload.shopName, "White Angels Apparels"),
     logo: readString(payload.logo, "White Angels Apparels"),
     phone: readString(payload.phone),
@@ -232,7 +233,7 @@ function normalizeSiteSettings(value: unknown): SiteSettings {
     ecocashMerchantNumber: readString(payload.ecocashMerchantNumber),
     collectionInstructions: readString(payload.collectionInstructions, "Collection details will be confirmed after your order is approved."),
     defaultDeliveryFee: typeof payload.defaultDeliveryFee === "number" ? payload.defaultDeliveryFee : 5
-  };
+  });
 }
 
 function readString(value: unknown, fallback = "") {

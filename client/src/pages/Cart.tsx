@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Hero } from "../components/Hero";
 import { AppLink, Container, EmptyState, Field, Section } from "../components/UI";
 import { useCart } from "../context/CartContext";
+import { resolveMediaUrl } from "../lib/media";
 import { useSiteSettings } from "./hooks";
 
 export function Cart() {
@@ -17,7 +18,7 @@ export function Cart() {
           <div className="cart-list">
             {items.length ? items.map(({ product, quantity }) => (
               <article className="cart-row" key={product.id}>
-                <img src={product.image_url || "/images/site/placeholder-product.jpg"} alt={product.name} />
+                <img src={resolveMediaUrl(product.image_url) || "/images/site/placeholder-product.jpg"} alt={product.name} />
                 <div>
                   <Link to={`/product/${product.slug}`}>{product.name}</Link>
                   <small>{product.category_name}</small>

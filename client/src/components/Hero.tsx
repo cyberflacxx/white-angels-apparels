@@ -1,12 +1,14 @@
 import type { ReactNode } from "react";
 import type { CSSProperties } from "react";
+import { resolveMediaUrl } from "../lib/media";
 import { Container } from "./UI";
 
 export function Hero({ title, subtitle, image, children, compact = false }: { title: string; subtitle?: string; image?: string; children?: ReactNode; compact?: boolean }) {
+  const heroImage = resolveMediaUrl(image);
   const heroStyle: CSSProperties = {
     backgroundColor: "#0F172A",
-    backgroundImage: image
-      ? `linear-gradient(90deg, rgba(15,23,42,.72), rgba(15,23,42,.34)), linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.42)), url(${image})`
+    backgroundImage: heroImage
+      ? `linear-gradient(90deg, rgba(15,23,42,.72), rgba(15,23,42,.34)), linear-gradient(rgba(15,23,42,.28), rgba(15,23,42,.42)), url(${heroImage})`
       : "linear-gradient(135deg, rgba(15,23,42,.95), rgba(37,106,217,.82))"
   };
 

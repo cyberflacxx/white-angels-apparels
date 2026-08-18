@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppButton, EmptyState, Field, SelectField, TextAreaField } from "../components/UI";
 import { api, type SiteSettings } from "../lib/api";
-import { useAdminAccount, useSiteSettings, useSubscribers } from "./hooks";
+import { resolveMediaUrl, toStoredSiteSettingsMedia } from "../lib/media";
+import { normalizeSiteSettings, useAdminAccount, useSiteSettings, useSubscribers } from "./hooks";
 
 const cards = [
   ["Today Sales", "$0", faDollarSign],
@@ -145,7 +146,8 @@ export function AdminSettings() {
     setError("");
     setMessage("");
     try {
-      await api.put("/admin/settings", form);
+      const response = await api.put("/admin/settings", toStoredSiteSettingsMedia(form));
+      setForm(normalizeSiteSettings(response.data));
       setMessage("Settings saved.");
     } catch (requestError: any) {
       setError(requestError?.response?.data?.message || "Settings could not be saved.");
@@ -158,7 +160,7 @@ export function AdminSettings() {
     payload.append("image", file);
     try {
       const response = await api.post(`/admin/settings/media/${slot}`, payload);
-      setForm(response.data);
+      setForm(normalizeSiteSettings(response.data));
       setMessage("Media updated.");
     } catch (requestError: any) {
       setError(requestError?.response?.data?.message || "Media upload failed.");
@@ -170,7 +172,7 @@ export function AdminSettings() {
     setMessage("");
     try {
       const response = await api.put("/admin/settings", { [key]: "" });
-      setForm(response.data);
+      setForm(normalizeSiteSettings(response.data));
       setMessage("Media removed. Static fallback is active.");
     } catch (requestError: any) {
       setError(requestError?.response?.data?.message || "Media could not be removed.");
@@ -198,7 +200,7 @@ export function AdminSettings() {
         <TextAreaField label="Collection Instructions" value={form.collectionInstructions} onChange={(event) => setForm({ ...form, collectionInstructions: event.target.value })} />
         <div className="admin-media-grid">
           {mediaSlots.map((item) => {
-            const preview = (form[item.key] as string | undefined) || "";
+            const preview = resolveMediaUrl(form[item.key] as string | undefined) || "/images/site/placeholder-product.jpg";
             return (
               <div className="media-slot-card" key={item.slot}>
                 <div className="media-slot-card__preview">

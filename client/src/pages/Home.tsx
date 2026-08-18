@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ProductCard } from "../components/ProductCard";
 import { api } from "../lib/api";
+import { resolveMediaUrl } from "../lib/media";
 import { getPublicSocialLinks, WHATSAPP_CHANNEL_LABEL } from "../lib/site";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeading } from "../components/UI";
 import { useCatalog, useSiteSettings } from "./hooks";
@@ -33,9 +34,12 @@ export function Home() {
   const [stockSubmitting, setStockSubmitting] = useState(false);
   const displayCategories = (categories.length ? categories : categoryPlaceholders.map((item, index) => ({ ...item, id: `placeholder-${index}` }))).map((category) => ({
     ...category,
-    image_url: category.image_url || categoryImageFallback(category.slug, settings)
+    image_url: resolveMediaUrl(category.image_url) || categoryImageFallback(category.slug, settings)
   }));
   const socials = getPublicSocialLinks(settings);
+  const heroBackground = resolveMediaUrl(settings.heroHomeBg) || "/images/site/hero-home-bg.jpg";
+  const heroModel = resolveMediaUrl(settings.heroHomeModel) || "/images/site/hero-home-model.jpg";
+  const promoBanner = resolveMediaUrl(settings.homePromoBanner) || "/images/site/banner-home-promo.jpg";
 
   async function submitStockAlert(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,7 +63,7 @@ export function Home() {
       <section
         className="home-hero home-hero--split"
         style={{
-          backgroundImage: `linear-gradient(120deg, rgba(7,26,61,.94), rgba(58,131,247,.42)), url("${settings.heroHomeBg || "/images/site/hero-home-bg.jpg"}")`
+          backgroundImage: `linear-gradient(120deg, rgba(7,26,61,.94), rgba(58,131,247,.42)), url("${heroBackground}")`
         }}
       >
         <Container className="home-hero__grid">
@@ -72,7 +76,7 @@ export function Home() {
           </div>
           <div className="home-hero__media">
             <div className="home-hero__media-card">
-              <img src={settings.heroHomeModel || "/images/site/hero-home-model.jpg"} alt="White Angels fashion model" />
+              <img src={heroModel} alt="White Angels fashion model" />
             </div>
           </div>
         </Container>
@@ -85,7 +89,7 @@ export function Home() {
           <div className="category-grid">
             {displayCategories.slice(0, 4).map((category) => (
               <Link className="category-card" key={category.id} to="/shop">
-                <img loading="lazy" src={category.image_url || categoryImageFallback(category.slug, settings)} alt={category.name} />
+                <img loading="lazy" src={resolveMediaUrl(category.image_url) || categoryImageFallback(category.slug, settings)} alt={category.name} />
                 <span>
                   <strong>{category.name}</strong>
                   <small>{category.description || "Explore the collection"}</small>
@@ -116,7 +120,7 @@ export function Home() {
       <Section className="promo-banner-section">
         <Container>
           <div className="promo-banner-card">
-            <img src={settings.homePromoBanner || "/images/site/banner-home-promo.jpg"} alt="White Angels promotional banner" />
+            <img src={promoBanner} alt="White Angels promotional banner" />
           </div>
         </Container>
       </Section>
@@ -213,13 +217,13 @@ function Feature({ icon, title, copy }: { icon: any; title: string; copy: string
 function categoryImageFallback(slug: string, settings: ReturnType<typeof useSiteSettings>["settings"]) {
   switch (slug) {
     case "women":
-      return settings.categoryWomen || "/images/site/category-women.jpg";
+      return resolveMediaUrl(settings.categoryWomen) || "/images/site/category-women.jpg";
     case "men":
-      return settings.categoryMen || "/images/site/category-men.jpg";
+      return resolveMediaUrl(settings.categoryMen) || "/images/site/category-men.jpg";
     case "shoes":
-      return settings.categoryShoes || "/images/site/category-shoes.jpg";
+      return resolveMediaUrl(settings.categoryShoes) || "/images/site/category-shoes.jpg";
     case "accessories":
-      return settings.categoryAccessories || "/images/site/category-accessories.jpg";
+      return resolveMediaUrl(settings.categoryAccessories) || "/images/site/category-accessories.jpg";
     default:
       return "/images/site/category-women.jpg";
   }

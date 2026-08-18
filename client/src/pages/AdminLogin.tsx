@@ -5,6 +5,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AppButton } from "../components/UI";
 import { api } from "../lib/api";
 import { setAdminToken } from "../lib/adminAuth";
+import { resolveMediaUrl } from "../lib/media";
+import { useSiteSettings } from "./hooks";
 
 const passwordRules = [
   { key: "length", label: "At least 8 characters", test: (value: string) => value.length >= 8 },
@@ -83,6 +85,9 @@ export function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
 
   async function login() {
     setError("");
@@ -99,10 +104,10 @@ export function AdminLogin() {
   }
 
   return (
-    <main className="auth-shell">
+    <main className="auth-shell" style={authShellStyle}>
       <section className="auth-card">
         <div className="auth-card__brand">
-          <span className="auth-logo"><img src="/images/site/logo-white-angels.png" alt="White Angels logo" /></span>
+          <span className="auth-logo"><img src={logoUrl} alt="White Angels logo" /></span>
           <div>
             <strong>White Angels Apparels</strong>
             <p>Admin Portal</p>
@@ -145,6 +150,7 @@ export function AdminLogin() {
 
 export function AdminRegister() {
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
   const [form, setForm] = useState({
     firstName: "",
     surname: "",
@@ -157,6 +163,8 @@ export function AdminRegister() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
   const passwordStatus = useMemo(
     () => passwordRules.map((rule) => ({ ...rule, met: rule.test(form.password) })),
     [form.password]
@@ -223,10 +231,10 @@ export function AdminRegister() {
   }
 
   return (
-    <main className="auth-shell">
+    <main className="auth-shell" style={authShellStyle}>
       <section className="auth-card auth-card--wide">
         <div className="auth-card__brand">
-          <span className="auth-logo"><img src="/images/site/logo-white-angels.png" alt="White Angels logo" /></span>
+          <span className="auth-logo"><img src={logoUrl} alt="White Angels logo" /></span>
           <div>
             <strong>White Angels Apparels</strong>
             <p>Admin Registration</p>
@@ -293,6 +301,7 @@ export function AdminRegister() {
 export function AdminRegisterVerify() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings } = useSiteSettings();
   const state = (location.state as { email?: string; maskedEmail?: string } | null) ?? null;
   const [email, setEmail] = useState(state?.email ?? "");
   const [maskedEmail, setMaskedEmail] = useState(state?.maskedEmail ?? "");
@@ -300,6 +309,8 @@ export function AdminRegisterVerify() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
 
   async function verifyAccount() {
     setError("");
@@ -329,10 +340,10 @@ export function AdminRegisterVerify() {
   }
 
   return (
-    <main className="auth-shell">
+    <main className="auth-shell" style={authShellStyle}>
       <section className="auth-card">
         <div className="auth-card__brand">
-          <span className="auth-logo"><img src="/images/site/logo-white-angels.png" alt="White Angels logo" /></span>
+          <span className="auth-logo"><img src={logoUrl} alt="White Angels logo" /></span>
           <div>
             <strong>White Angels Apparels</strong>
             <p>Email Verification</p>
@@ -363,4 +374,15 @@ export function AdminRegisterVerify() {
       </section>
     </main>
   );
+}
+
+function readAuthShellStyle(image: string | undefined) {
+  const background = resolveMediaUrl(image);
+  if (!background) return undefined;
+
+  return {
+    backgroundImage: `linear-gradient(120deg, rgba(7,26,61,.92), rgba(33,77,155,.55)), url("${background}")`,
+    backgroundPosition: "center",
+    backgroundSize: "cover"
+  } as const;
 }

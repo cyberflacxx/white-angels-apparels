@@ -7,6 +7,7 @@ import { ProductCard } from "../components/ProductCard";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeading } from "../components/UI";
 import { useCart } from "../context/CartContext";
 import { api, hasApiBaseUrl, isProduct, type Product } from "../lib/api";
+import { normalizeProductMedia, resolveMediaUrl } from "../lib/media";
 import { useCatalog, useSiteSettings } from "./hooks";
 
 export function ProductPage() {
@@ -46,7 +47,7 @@ export function ProductPage() {
           return;
         }
 
-        setProduct(res.data);
+        setProduct(normalizeProductMedia(res.data));
       })
       .catch(() => {
         if (active) setNotFound(true);
@@ -78,14 +79,20 @@ export function ProductPage() {
   if (!product) return <Hero title="Loading product" image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />;
 
   const related = products.filter((item) => item.id !== product.id).slice(0, 4);
+  const heroImage = resolveMediaUrl(product.image_url) || resolveMediaUrl(settings.heroProduct) || "/images/site/hero-product.jpg";
+  const galleryImages = [
+    heroImage,
+    resolveMediaUrl(settings.heroShop) || "/images/site/hero-shop.jpg",
+    resolveMediaUrl(settings.heroAbout) || "/images/site/hero-about.jpg"
+  ];
 
   return (
     <main>
-      <Hero title={product.name} subtitle={product.short_description} image={product.image_url || settings.heroProduct || "/images/site/hero-product.jpg"} compact />
+      <Hero title={product.name} subtitle={product.short_description} image={heroImage} compact />
       <Section>
         <Container className="product-detail">
           <div className="gallery">
-            {[product.image_url || settings.heroProduct || "/images/site/hero-product.jpg", settings.heroShop || "/images/site/hero-shop.jpg", settings.heroAbout || "/images/site/hero-about.jpg"].map((image, index) => (
+            {galleryImages.map((image, index) => (
               <button key={image} className={index === 0 ? "gallery__item gallery__item--main" : "gallery__item"} aria-label={`Product image ${index + 1}`}>
                 <img src={image} alt={index === 0 ? product.name : ""} />
               </button>
