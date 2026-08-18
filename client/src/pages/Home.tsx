@@ -3,7 +3,7 @@ import { faArrowRight, faGem, faMoneyBillWave, faPeopleGroup, faShirt, faStore, 
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { EcoCashIdentity } from "../components/EcoCashIdentity";
+import { EcoCashIdentity, EcoCashWordmark } from "../components/EcoCashIdentity";
 import { ProductCard } from "../components/ProductCard";
 import { SocialLinks } from "../components/SocialLinks";
 import { api } from "../lib/api";
@@ -47,9 +47,6 @@ export function Home() {
   const heroBackground = resolveMediaUrl(settings.heroHomeBg) || "/images/site/hero-home-bg.jpg";
   const heroModel = resolveMediaUrl(settings.heroHomeModel) || "/images/site/hero-home-model.jpg";
   const promoBanner = resolveMediaUrl(settings.homePromoBanner) || "/images/site/banner-home-promo.jpg";
-  const ecocashNumber = settings.ecocashMerchantNumber.trim();
-  const ecocashMerchant = settings.ecocashMerchantName.trim() || "White Angels Apparels";
-
   async function submitStockAlert(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStockMessage("");
@@ -157,12 +154,9 @@ export function Home() {
             <SectionHeading eyebrow="Payment options" title="EcoCash or cash" copy="EcoCash references are submitted for manual verification; no automatic mobile money processing is implied." />
             <div className="payment-card-grid">
               <EcoCashIdentity
-                merchantName={ecocashMerchant}
-                merchantNumber={ecocashNumber}
-                instruction="Use the configured EcoCash number above, then keep your reference ready for manual verification."
               />
               <div className="pill-row">
-                <span><FontAwesomeIcon icon={faWallet} /> EcoCash</span>
+                <span><FontAwesomeIcon icon={faWallet} /> <EcoCashWordmark /></span>
                 <span><FontAwesomeIcon icon={faMoneyBillWave} /> Cash</span>
               </div>
             </div>

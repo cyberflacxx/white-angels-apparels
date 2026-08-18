@@ -1,8 +1,9 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMobileScreenButton, faMoneyBillWave, faStore, faTruck } from "@fortawesome/free-solid-svg-icons";
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { EcoCashIdentity } from "../components/EcoCashIdentity";
+import { EcoCashIdentity, EcoCashWordmark } from "../components/EcoCashIdentity";
 import { Hero } from "../components/Hero";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, TextAreaField } from "../components/UI";
 import { useCart } from "../context/CartContext";
@@ -21,9 +22,6 @@ export function Checkout() {
   const [error, setError] = useState("");
   const deliveryFee = fulfilmentMethod === "HOME_DELIVERY" ? Number(settings.defaultDeliveryFee ?? 5) : 0;
   const total = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
-  const ecocashNumber = settings.ecocashMerchantNumber.trim();
-  const ecocashMerchant = settings.ecocashMerchantName.trim() || "White Angels Apparels";
-
   async function placeOrder() {
     setError("");
     setPlacing(true);
@@ -76,16 +74,13 @@ export function Checkout() {
             </Step>
             <Step number="3" title="Payment">
               <div className="choice-grid">
-                <Choice selected={paymentMethod === "ECOCASH"} icon={faMobileScreenButton} title="EcoCash" copy="Submit details for manual verification." onClick={() => setPayment("ECOCASH")} />
+                <Choice selected={paymentMethod === "ECOCASH"} icon={faMobileScreenButton} title={<EcoCashWordmark />} copy="Submit details for manual verification." onClick={() => setPayment("ECOCASH")} />
                 <Choice selected={paymentMethod === "CASH"} icon={faMoneyBillWave} title={fulfilmentMethod === "HOME_DELIVERY" ? "Cash on Delivery" : "Cash on Collection"} copy="Pay when receiving the order." onClick={() => setPayment("CASH")} />
               </div>
               {paymentMethod === "ECOCASH" && (
                 <div className="checkout-ecocash-panel">
                   <EcoCashIdentity
                     className="payment-method-card payment-method-card--checkout"
-                    merchantName={ecocashMerchant}
-                    merchantNumber={ecocashNumber}
-                    instruction="Send payment to the configured merchant number, then enter the paying number and reference below for manual verification."
                   />
                   <div className="form-grid">
                     <Field label="EcoCash phone number" value={form.ecocashPhone || ""} onChange={set("ecocashPhone")} />
@@ -126,7 +121,7 @@ function Step({ number, title, children }: { number: string; title: string; chil
   );
 }
 
-function Choice({ icon, title, copy, selected, onClick }: { icon: any; title: string; copy: string; selected: boolean; onClick: () => void }) {
+function Choice({ icon, title, copy, selected, onClick }: { icon: any; title: ReactNode; copy: string; selected: boolean; onClick: () => void }) {
   return (
     <button type="button" className={selected ? "choice-card choice-card--selected" : "choice-card"} onClick={onClick}>
       <FontAwesomeIcon icon={icon} />
