@@ -56,7 +56,7 @@ export function useSiteSettings() {
   const [settings, setSettings] = useState<SiteSettings>({
     shopName: "White Angels Apparels",
     logo: "White Angels Apparels",
-    logoUrl: "/images/site/logo-white-angels.png",
+    logoUrl: "/images/site/white-angels-logo.png",
     phone: "",
     email: "",
     address: "",
@@ -244,7 +244,7 @@ export function normalizeSiteSettings(value: unknown): SiteSettings {
     facebook: readString(payload.facebook),
     instagram: readString(payload.instagram),
     tiktok: readString(payload.tiktok),
-    logoUrl: readString(payload.logoUrl, "/images/site/logo-white-angels.png"),
+    logoUrl: readString(payload.logoUrl, "/images/site/white-angels-logo.png"),
     heroHomeBg: readString(payload.heroHomeBg, "/images/site/hero-home-bg.jpg"),
     heroHomeModel: readString(payload.heroHomeModel, "/images/site/hero-home-model.jpg"),
     heroShop: readString(payload.heroShop, "/images/site/hero-shop.jpg"),

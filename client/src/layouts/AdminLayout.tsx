@@ -1,9 +1,10 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBars, faBoxesStacked, faChartLine, faChevronDown, faGear, faLayerGroup, faMoon, faRightFromBracket, faShirt, faShoppingCart, faStore, faSun, faUserCog, faUsers, faUsersViewfinder, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearAdminToken } from "../lib/adminAuth";
-import { useAdminAccount } from "../pages/hooks";
+import { resolveMediaUrl } from "../lib/media";
+import { useAdminAccount, useSiteSettings } from "../pages/hooks";
 
 const links = [
   ["Dashboard", "/admin", faChartLine],
@@ -23,6 +24,9 @@ export function AdminLayout() {
   const [theme, setTheme] = useState<"light" | "dark">(() => readAdminTheme());
   const navigate = useNavigate();
   const { account } = useAdminAccount();
+  const { settings } = useSiteSettings();
+  const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/white-angels-logo.png";
 
   useEffect(() => {
     window.localStorage.setItem("wa-admin-theme", theme);
@@ -32,6 +36,33 @@ export function AdminLayout() {
     };
   }, [theme]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!accountMenuRef.current?.contains(event.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAccountOpen(false);
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("menu-open", open);
+    return () => document.body.classList.remove("menu-open");
+  }, [open]);
+
   function logout() {
     clearAdminToken();
     navigate("/admin/login");
@@ -39,23 +70,31 @@ export function AdminLayout() {
 
   return (
     <main className={open ? `admin-shell admin-shell--open admin-shell--${theme}` : `admin-shell admin-shell--${theme}`}>
-      <aside>
+      {open && <button type="button" className="admin-drawer-backdrop" aria-label="Close admin navigation" onClick={() => setOpen(false)} />}
+      <aside aria-label="Admin navigation">
         <div className="admin-brand">
-          <span>WA</span>
-          <strong>White Angels Apparels</strong>
+          <img src={logoUrl} alt="White Angels Apparels logo" />
+          <div>
+            <strong>{settings.shopName || "White Angels Apparels"}</strong>
+            <span>Admin workspace</span>
+          </div>
         </div>
-        {links.map(([label, href, icon]) => (
-          <NavLink key={href} to={href} end={href === "/admin"} onClick={() => setOpen(false)}>
-            <FontAwesomeIcon icon={icon} /> {label}
-          </NavLink>
-        ))}
-        <button className="admin-logout" onClick={logout}>
-          <FontAwesomeIcon icon={faRightFromBracket} /> Logout
-        </button>
+        <nav className="admin-nav">
+          {links.map(([label, href, icon]) => (
+            <NavLink key={href} to={href} end={href === "/admin"} onClick={() => setOpen(false)}>
+              <FontAwesomeIcon icon={icon} /> <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="admin-sidebar__footer">
+          <button className="admin-logout" onClick={logout}>
+            <FontAwesomeIcon icon={faRightFromBracket} /> Logout
+          </button>
+        </div>
       </aside>
       <section className="admin-workspace">
-        <div className="admin-topbar">
-          <button className="icon-button mobile-only" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close admin navigation" : "Open admin navigation"}>
+        <header className="admin-topbar">
+          <button className="icon-button mobile-only admin-topbar__menu" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close admin navigation" : "Open admin navigation"}>
             <FontAwesomeIcon icon={open ? faXmark : faBars} />
           </button>
           <div className="admin-topbar__copy">
@@ -71,7 +110,7 @@ export function AdminLayout() {
             >
               <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
             </button>
-            <div className="admin-account-menu">
+            <div className="admin-account-menu" ref={accountMenuRef}>
               <button type="button" className="admin-account-menu__trigger" onClick={() => setAccountOpen((value) => !value)}>
                 <FontAwesomeIcon icon={faUserCog} />
                 <span>User Account</span>
@@ -86,8 +125,10 @@ export function AdminLayout() {
               )}
             </div>
           </div>
+        </header>
+        <div className="admin-content">
+          <Outlet />
         </div>
-        <Outlet />
       </section>
     </main>
   );

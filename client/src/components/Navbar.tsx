@@ -19,7 +19,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { count } = useCart();
   const { settings } = useSiteSettings();
-  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/white-angels-logo.png";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 28);
@@ -36,7 +36,7 @@ export function Navbar() {
   return (
     <header className={scrolled || open ? "navbar navbar--solid" : "navbar"}>
       <Link to="/" className="logo" onClick={() => setOpen(false)}>
-        {settings.logoUrl ? <img src={logoUrl} alt="White Angels Apparels logo" /> : <span>WA</span>}
+        <img src={logoUrl} alt="White Angels Apparels logo" />
         <strong>{settings.shopName || "White Angels Apparels"}</strong>
       </Link>
       <nav className={open ? "navlinks navlinks--open" : "navlinks"} aria-label="Primary navigation">

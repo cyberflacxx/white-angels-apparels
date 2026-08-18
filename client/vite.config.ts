@@ -4,13 +4,19 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    // A stale, OS-locked dist asset should not block local production builds.
+    emptyOutDir: false
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: [
-        "favicon.svg",
-        "images/site/logo-white-angels.png",
+        "favicon.ico",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "images/site/white-angels-logo.png",
         "pwa/apple-touch-icon.png",
         "pwa/icon-192x192.png",
         "pwa/icon-512x512.png",
@@ -44,6 +50,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/api\//],

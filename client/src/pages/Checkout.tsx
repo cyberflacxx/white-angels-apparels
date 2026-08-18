@@ -1,7 +1,8 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faMobileScreenButton, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
+import { faMobileScreenButton, faMoneyBillWave, faStore, faTruck } from "@fortawesome/free-solid-svg-icons";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { EcoCashIdentity } from "../components/EcoCashIdentity";
 import { Hero } from "../components/Hero";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, TextAreaField } from "../components/UI";
 import { useCart } from "../context/CartContext";
@@ -76,23 +77,16 @@ export function Checkout() {
             <Step number="3" title="Payment">
               <div className="choice-grid">
                 <Choice selected={paymentMethod === "ECOCASH"} icon={faMobileScreenButton} title="EcoCash" copy="Submit details for manual verification." onClick={() => setPayment("ECOCASH")} />
-                <Choice selected={paymentMethod === "CASH"} icon={faWallet} title={fulfilmentMethod === "HOME_DELIVERY" ? "Cash on Delivery" : "Cash on Collection"} copy="Pay when receiving the order." onClick={() => setPayment("CASH")} />
+                <Choice selected={paymentMethod === "CASH"} icon={faMoneyBillWave} title={fulfilmentMethod === "HOME_DELIVERY" ? "Cash on Delivery" : "Cash on Collection"} copy="Pay when receiving the order." onClick={() => setPayment("CASH")} />
               </div>
               {paymentMethod === "ECOCASH" && (
                 <div className="checkout-ecocash-panel">
-                  <article className="payment-method-card payment-method-card--ecocash payment-method-card--checkout">
-                    <div className="payment-method-card__brand">
-                      <span className="payment-logo-badge" aria-hidden="true">EcoCash</span>
-                      <div>
-                        <strong>EcoCash</strong>
-                        <p>{ecocashMerchant}</p>
-                      </div>
-                    </div>
-                    <div className="payment-method-card__details">
-                      <span>{ecocashNumber || "Merchant number can be added in Admin Settings."}</span>
-                      <small>Send payment to the configured merchant number, then enter the paying number and reference below for manual verification.</small>
-                    </div>
-                  </article>
+                  <EcoCashIdentity
+                    className="payment-method-card payment-method-card--checkout"
+                    merchantName={ecocashMerchant}
+                    merchantNumber={ecocashNumber}
+                    instruction="Send payment to the configured merchant number, then enter the paying number and reference below for manual verification."
+                  />
                   <div className="form-grid">
                     <Field label="EcoCash phone number" value={form.ecocashPhone || ""} onChange={set("ecocashPhone")} />
                     <Field label="EcoCash transaction/reference number" value={form.ecocashReference || ""} onChange={set("ecocashReference")} />

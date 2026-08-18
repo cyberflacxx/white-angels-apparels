@@ -1,12 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEnvelope, faLocationDot, faPhone } from "@fortawesome/free-solid-svg-icons";
-import { faFacebookF, faInstagram, faTiktok, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
-import { getPublicSocialLinks } from "../lib/site";
 import { useSiteSettings } from "../pages/hooks";
+import { SocialLinks } from "./SocialLinks";
 import { Container } from "./UI";
 
 const links = {
@@ -15,17 +14,9 @@ const links = {
   care: ["Delivery & Collection Policy", "Returns / Exchange Policy", "Privacy Policy", "Terms & Conditions", "Track Order", "Admin Login"]
 };
 
-const socialIcons = {
-  whatsapp: faWhatsapp,
-  instagram: faInstagram,
-  facebook: faFacebookF,
-  tiktok: faTiktok
-};
-
 export function Footer() {
   const year = new Date().getFullYear();
   const { settings } = useSiteSettings();
-  const socials = getPublicSocialLinks(settings);
   const [form, setForm] = useState({ name: "", whatsappNumber: "", optedIn: false });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -74,26 +65,7 @@ export function Footer() {
         <div>
           <h3>{settings.shopName || "White Angels Apparels"}</h3>
           <p>Premium apparel, clean styling, flexible fulfilment, and a calm shopping experience built for confident everyday looks.</p>
-          <div className="socials">
-            {socials.map((item) => (
-              item.enabled ? (
-                <a
-                  href={item.href}
-                  key={item.label}
-                  aria-label={item.label}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`social-link social-link--${item.platform}`}
-                >
-                  <FontAwesomeIcon icon={socialIcons[item.platform]} />
-                </a>
-              ) : (
-                <span key={item.label} className={`socials__disabled socials__disabled--${item.platform}`} aria-label={`${item.label} not configured`}>
-                  <FontAwesomeIcon icon={socialIcons[item.platform]} />
-                </span>
-              )
-            ))}
-          </div>
+          <SocialLinks settings={settings} />
         </div>
         <FooterList title="Shop" items={links.shopping} />
         <FooterList title="Customer Care" items={links.care} />

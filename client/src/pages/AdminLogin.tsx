@@ -86,7 +86,7 @@ export function AdminLogin() {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
-  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/white-angels-logo.png";
   const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
 
   async function login() {
@@ -163,7 +163,7 @@ export function AdminRegister() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/white-angels-logo.png";
   const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
   const passwordStatus = useMemo(
     () => passwordRules.map((rule) => ({ ...rule, met: rule.test(form.password) })),
@@ -309,7 +309,7 @@ export function AdminRegisterVerify() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/logo-white-angels.png";
+  const logoUrl = resolveMediaUrl(settings.logoUrl) || "/images/site/white-angels-logo.png";
   const authShellStyle = readAuthShellStyle(settings.heroAdminLogin);
 
   async function verifyAccount() {

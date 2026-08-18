@@ -1,13 +1,14 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faGem, faPeopleGroup, faShirt, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
-import { faFacebookF, faInstagram, faTiktok, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
+import { faArrowRight, faGem, faMoneyBillWave, faPeopleGroup, faShirt, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { EcoCashIdentity } from "../components/EcoCashIdentity";
 import { ProductCard } from "../components/ProductCard";
+import { SocialLinks } from "../components/SocialLinks";
 import { api } from "../lib/api";
 import { resolveMediaUrl } from "../lib/media";
-import { getPublicSocialLinks, WHATSAPP_CHANNEL_LABEL } from "../lib/site";
+import { WHATSAPP_CHANNEL_LABEL } from "../lib/site";
 import { AppButton, AppLink, Container, EmptyState, Field, Section, SectionHeading } from "../components/UI";
 import { useCatalog, useSiteSettings } from "./hooks";
 
@@ -43,7 +44,6 @@ export function Home() {
     ...category,
     image_url: resolveMediaUrl(category.image_url) || categoryImageFallback(category.slug, settings)
   }));
-  const socials = getPublicSocialLinks(settings);
   const heroBackground = resolveMediaUrl(settings.heroHomeBg) || "/images/site/hero-home-bg.jpg";
   const heroModel = resolveMediaUrl(settings.heroHomeModel) || "/images/site/hero-home-model.jpg";
   const promoBanner = resolveMediaUrl(settings.homePromoBanner) || "/images/site/banner-home-promo.jpg";
@@ -156,40 +156,20 @@ export function Home() {
           <div>
             <SectionHeading eyebrow="Payment options" title="EcoCash or cash" copy="EcoCash references are submitted for manual verification; no automatic mobile money processing is implied." />
             <div className="payment-card-grid">
-              <article className="payment-method-card payment-method-card--ecocash">
-                <div className="payment-method-card__brand">
-                  <span className="payment-logo-badge" aria-hidden="true">EcoCash</span>
-                  <div>
-                    <strong>EcoCash</strong>
-                    <p>{ecocashMerchant}</p>
-                  </div>
-                </div>
-                <div className="payment-method-card__details">
-                  <span>{ecocashNumber || "Merchant number can be added in Admin Settings."}</span>
-                  <small>Use the configured EcoCash number above, then keep your reference ready for manual verification.</small>
-                </div>
-              </article>
+              <EcoCashIdentity
+                merchantName={ecocashMerchant}
+                merchantNumber={ecocashNumber}
+                instruction="Use the configured EcoCash number above, then keep your reference ready for manual verification."
+              />
               <div className="pill-row">
                 <span><FontAwesomeIcon icon={faWallet} /> EcoCash</span>
-                <span><FontAwesomeIcon icon={faStore} /> Cash</span>
+                <span><FontAwesomeIcon icon={faMoneyBillWave} /> Cash</span>
               </div>
             </div>
           </div>
           <div>
             <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="WhatsApp is confirmed. Facebook, TikTok, and Instagram become clickable only when configured in admin settings." />
-            <div className="socials socials--large">
-              {socials.map((item) => (
-                item.enabled ? (
-                  <a href={item.href} key={item.label} aria-label={item.label} target="_blank" rel="noopener noreferrer" className={`social-link social-link--${item.platform}`}>
-                    <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "facebook" ? faFacebookF : item.platform === "tiktok" ? faTiktok : faInstagram} />
-                  </a>
-                ) : (
-                  <span key={item.label} className={`socials__disabled socials__disabled--${item.platform}`} aria-label={`${item.label} not configured`}>
-                    <FontAwesomeIcon icon={item.platform === "whatsapp" ? faWhatsapp : item.platform === "facebook" ? faFacebookF : item.platform === "tiktok" ? faTiktok : faInstagram} />
-                  </span>
-                )
-              ))}
-            </div>
+            <SocialLinks settings={settings} large />
             <p className="social-note">{WHATSAPP_CHANNEL_LABEL} is live now. Facebook, TikTok, and Instagram can be switched on later through admin settings.</p>
           </div>
         </Container>
