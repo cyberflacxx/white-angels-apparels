@@ -61,7 +61,7 @@ export function ProductPage() {
   if (loadError) {
     return (
       <main>
-        <Hero title="Product unavailable" subtitle={loadError} image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
+        <Hero className="hero--product" title="Product unavailable" subtitle={loadError} image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
         <Section><Container><EmptyState title="Product unavailable" copy="Return to the shop to browse the current catalogue." action={<AppLink to="/shop">Back to Shop</AppLink>} /></Container></Section>
       </main>
     );
@@ -70,13 +70,13 @@ export function ProductPage() {
   if (notFound) {
     return (
       <main>
-        <Hero title="Product unavailable" subtitle="This item may be sold out or no longer listed." image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
+        <Hero className="hero--product" title="Product unavailable" subtitle="This item may be sold out or no longer listed." image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />
         <Section><Container><EmptyState title="Product not found" copy="Return to the shop to view available items." action={<AppLink to="/shop">Back to Shop</AppLink>} /></Container></Section>
       </main>
     );
   }
 
-  if (!product) return <Hero title="Loading product" image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />;
+  if (!product) return <Hero className="hero--product" title="Loading product" image={settings.heroProduct || "/images/site/hero-product.jpg"} compact />;
 
   const related = products.filter((item) => item.id !== product.id).slice(0, 4);
   const heroImage = resolveMediaUrl(product.image_url) || resolveMediaUrl(settings.heroProduct) || "/images/site/hero-product.jpg";
@@ -88,7 +88,7 @@ export function ProductPage() {
 
   return (
     <main>
-      <Hero title={product.name} subtitle={product.short_description} image={heroImage} compact />
+      <Hero className="hero--product" title={product.name} subtitle={product.short_description} image={heroImage} compact />
       <Section>
         <Container className="product-detail">
           <div className="gallery">

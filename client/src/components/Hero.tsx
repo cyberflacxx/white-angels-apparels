@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { resolveMediaUrl } from "../lib/media";
 import { Container } from "./UI";
 
-export function Hero({ title, subtitle, image, children, compact = false }: { title: string; subtitle?: string; image?: string; children?: ReactNode; compact?: boolean }) {
+export function Hero({ title, subtitle, image, children, compact = false, className = "" }: { title: string; subtitle?: string; image?: string; children?: ReactNode; compact?: boolean; className?: string }) {
   const heroImage = resolveMediaUrl(image);
   const heroStyle: CSSProperties = {
     backgroundColor: "#0F172A",
@@ -13,7 +13,7 @@ export function Hero({ title, subtitle, image, children, compact = false }: { ti
   };
 
   return (
-    <section className={compact ? "hero page-hero" : "hero"} style={heroStyle}>
+    <section className={`${compact ? "hero page-hero" : "hero"} ${className}`.trim()} style={heroStyle}>
       <Container className="hero__content">
         <p className="eyebrow">White Angels Apparels</p>
         <h1>{title}</h1>

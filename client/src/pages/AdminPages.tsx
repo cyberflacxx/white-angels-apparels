@@ -1,19 +1,23 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBox, faBoxesStacked, faChartLine, faCloudArrowUp, faDollarSign, faLayerGroup, faPaperPlane, faPlus, faShoppingCart, faUsers, faUserCheck } from "@fortawesome/free-solid-svg-icons";
+import { faArrowTrendUp, faBox, faBoxesStacked, faChartLine, faCloudArrowUp, faDollarSign, faLayerGroup, faMoneyBillWave, faPaperPlane, faPlus, faShoppingCart, faStore, faTriangleExclamation, faUsers, faUserCheck } from "@fortawesome/free-solid-svg-icons";
+import { Bar } from "react-chartjs-2";
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Title,
+  Tooltip
+} from "chart.js";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppButton, EmptyState, Field, SelectField, TextAreaField } from "../components/UI";
 import { api, type SiteSettings } from "../lib/api";
 import { resolveMediaUrl, toStoredSiteSettingsMedia } from "../lib/media";
-import { normalizeSiteSettings, useAdminAccount, useSiteSettings, useSubscribers } from "./hooks";
+import { normalizeSiteSettings, useAdminAccount, useAdminDashboard, useSiteSettings, useSubscribers } from "./hooks";
 
-const cards = [
-  ["Today Sales", "$0", faDollarSign],
-  ["Orders", "0", faShoppingCart],
-  ["Pending", "0", faChartLine],
-  ["Stock", "0", faBoxesStacked],
-  ["Customers", "0", faUsers]
-] as const;
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const mediaSlots = [
   { label: "Logo", slot: "logo", key: "logoUrl" },
@@ -36,14 +40,129 @@ const mediaSlots = [
 
 export function AdminDashboard() {
   const { account } = useAdminAccount();
+  const { dashboard, loading, error } = useAdminDashboard();
+  const isDark = typeof document !== "undefined" && document.documentElement.dataset.adminTheme === "dark";
+  const axisColor = isDark ? "#C7D2E5" : "#64748B";
+  const gridColor = isDark ? "rgba(148, 163, 184, 0.18)" : "rgba(148, 163, 184, 0.22)";
+  const tooltipBackground = isDark ? "#172033" : "#FFFFFF";
+  const tooltipText = isDark ? "#E2E8F0" : "#0F172A";
+  const cards = dashboard ? [
+    { label: "Today's Revenue", value: formatMoney(dashboard.cards.todaysSales), icon: faDollarSign, tone: "success" },
+    { label: "All Orders", value: String(dashboard.cards.totalOrders), icon: faShoppingCart, tone: "primary" },
+    { label: "Pending Orders", value: String(dashboard.cards.pendingOrders), icon: faChartLine, tone: "warning" },
+    { label: "Awaiting EcoCash Review", value: String(dashboard.cards.awaitingPaymentVerification), icon: faMoneyBillWave, tone: "amber" },
+    { label: "Low Stock", value: String(dashboard.cards.lowStockProducts), icon: faTriangleExclamation, tone: "danger" },
+    { label: "Subscribers", value: String(dashboard.cards.totalSubscribers), icon: faUsers, tone: "accent" }
+  ] : [];
+  const chartData = {
+    labels: dashboard?.salesOverview.map((item) => item.day) ?? [],
+    datasets: [
+      {
+        label: "Revenue",
+        data: dashboard?.salesOverview.map((item) => item.revenue) ?? [],
+        backgroundColor: "#3A83F7",
+        borderRadius: 10,
+        maxBarThickness: 40
+      }
+    ]
+  };
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: "Last 7 Days Revenue" },
+      tooltip: {
+        backgroundColor: tooltipBackground,
+        titleColor: tooltipText,
+        bodyColor: tooltipText,
+        callbacks: {
+          label(context: { parsed: { y: number } }) {
+            return `Revenue ${formatMoney(context.parsed.y)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { color: axisColor }, grid: { display: false } },
+      y: { ticks: { color: axisColor }, grid: { color: gridColor } }
+    }
+  };
 
   return (
     <section className="admin-page">
       <AdminHeader title={`Welcome, ${account?.first_name || "Admin"}`} copy="Operational overview for White Angels Apparels." />
-      <div className="metric-grid">{cards.map(([card, value, icon]) => <article key={card}><FontAwesomeIcon icon={icon} /><span>{card}</span><strong>{value}</strong></article>)}</div>
+      {error && <div className="error-card">{error}</div>}
+      {loading ? <div className="status-banner">Loading dashboard analytics...</div> : null}
+      <div className="metric-grid">
+        {cards.map((card) => (
+          <article key={card.label} className={`metric-card metric-card--${card.tone}`}>
+            <FontAwesomeIcon icon={card.icon} />
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+          </article>
+        ))}
+      </div>
       <div className="admin-grid">
-        <div className="admin-panel"><h2>Recent orders</h2><EmptyState title="No orders yet" copy="Order activity appears here after customers begin checking out." /></div>
-        <div className="admin-panel"><h2>Sales overview</h2><div className="chart-placeholder" /></div>
+        <div className="admin-panel admin-panel--chart">
+          <h2>Sales overview</h2>
+          {dashboard?.salesOverview.length ? (
+            <div className="admin-chart-wrap">
+              <Bar data={chartData} options={chartOptions} />
+            </div>
+          ) : (
+            <EmptyState title="No sales data yet" copy="Revenue bars will appear here after real orders are created." />
+          )}
+        </div>
+        <div className="admin-panel">
+          <h2>Recent orders</h2>
+          {dashboard?.recentOrders.length ? (
+            <div className="admin-list">
+              {dashboard.recentOrders.map((order) => (
+                <article className="admin-list-item" key={order.id}>
+                  <div>
+                    <strong>{order.order_number}</strong>
+                    <span>{order.full_name}</span>
+                  </div>
+                  <div>
+                    <strong>{formatMoney(Number(order.total))}</strong>
+                    <span>{formatStatus(order.order_status)}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <EmptyState title="No orders yet" copy="Order activity appears here after customers begin checking out." />}
+        </div>
+      </div>
+      <div className="admin-grid admin-grid--compact">
+        <div className="admin-panel">
+          <h2>Stock watch</h2>
+          {dashboard?.lowStock.length ? (
+            <div className="admin-list">
+              {dashboard.lowStock.map((item) => (
+                <article className="admin-list-item" key={item.id}>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>Threshold {item.low_stock_threshold}</span>
+                  </div>
+                  <div>
+                    <strong>{item.stock_quantity}</strong>
+                    <span>remaining</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <EmptyState title="Stock levels look healthy" copy="Low-stock alerts will appear here when products approach their threshold." />}
+        </div>
+        <div className="admin-panel">
+          <h2>Service mix</h2>
+          <div className="admin-stat-pills">
+            <span className="admin-stat-pill admin-stat-pill--primary"><FontAwesomeIcon icon={faStore} /> {dashboard?.cards.shopCollections ?? 0} collections</span>
+            <span className="admin-stat-pill admin-stat-pill--success"><FontAwesomeIcon icon={faArrowTrendUp} /> {dashboard?.cards.homeDeliveries ?? 0} deliveries</span>
+            <span className="admin-stat-pill admin-stat-pill--accent"><FontAwesomeIcon icon={faBoxesStacked} /> {dashboard?.cards.totalProducts ?? 0} active products</span>
+            <span className="admin-stat-pill admin-stat-pill--warning"><FontAwesomeIcon icon={faUsers} /> {dashboard?.cards.customers ?? 0} customers</span>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -429,4 +548,12 @@ function AdminTable({ title, columns, filters = [], emptyTitle, icon = faBox, em
 
 function EmptyInline({ icon, title }: { icon: any; title: string }) {
   return <span className="table-empty"><FontAwesomeIcon icon={icon} /> {title}</span>;
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(value);
+}
+
+function formatStatus(value: string) {
+  return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

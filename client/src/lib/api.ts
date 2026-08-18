@@ -115,6 +115,68 @@ export type Subscriber = {
   updated_at?: string;
 };
 
+export type DashboardCardMetrics = {
+  todaysSales: number;
+  totalSales: number;
+  totalOrders: number;
+  pendingOrders: number;
+  awaitingPaymentVerification: number;
+  homeDeliveries: number;
+  shopCollections: number;
+  totalProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  customers: number;
+  totalSubscribers: number;
+};
+
+export type DashboardOrder = {
+  id: string;
+  order_number: string;
+  full_name: string;
+  total: number | string;
+  order_status: string;
+  payment_status: string;
+  fulfilment_method: string;
+  created_at: string;
+};
+
+export type DashboardInventoryItem = {
+  id: string;
+  name: string;
+  stock_quantity: number;
+  low_stock_threshold: number;
+};
+
+export type DashboardInventoryActivity = {
+  id: string;
+  product_name: string;
+  movement_type: string;
+  quantity: number;
+  stock_after: number;
+  created_at: string;
+};
+
+export type DashboardSalesPoint = {
+  day: string;
+  revenue: number;
+  orders: number;
+};
+
+export type DashboardStatusPoint = {
+  status: string;
+  count: number;
+};
+
+export type AdminDashboardResponse = {
+  cards: DashboardCardMetrics;
+  recentOrders: DashboardOrder[];
+  lowStock: DashboardInventoryItem[];
+  inventoryActivity: DashboardInventoryActivity[];
+  salesOverview: DashboardSalesPoint[];
+  orderStatusCounts: DashboardStatusPoint[];
+};
+
 export function isProduct(value: unknown): value is Product {
   return Boolean(
     value &&

@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight, faGem, faPeopleGroup, faShirt, faStore, faTruck, faWallet } from "@fortawesome/free-solid-svg-icons";
 import { faFacebookF, faInstagram, faTiktok, faWhatsapp } from "@fortawesome/free-brands-svg-icons";
 import type { FormEvent } from "react";
 import { useState } from "react";
@@ -19,10 +19,17 @@ const categoryPlaceholders = [
 ];
 
 const whyWhiteAngels = [
-  { emoji: "Q", title: "Quality Selection", copy: "Curated pieces with a polished finish for everyday confidence." },
-  { emoji: "D", title: "Reliable Delivery", copy: "Delivery options stay clear from browsing through checkout." },
-  { emoji: "C", title: "Easy Collection", copy: "Shop collection remains simple for customers who prefer pickup." },
-  { emoji: "P", title: "Flexible Payments", copy: "EcoCash verification and cash options stay transparent." }
+  { icon: faGem, title: "Quality Selection", copy: "Curated pieces with a polished finish for everyday confidence." },
+  { icon: faTruck, title: "Reliable Delivery", copy: "Delivery options stay clear from browsing through checkout." },
+  { icon: faStore, title: "Easy Collection", copy: "Collection stays simple for customers who prefer pickup." },
+  { icon: faWallet, title: "Flexible Payments", copy: "EcoCash verification and cash options stay transparent." }
+];
+
+const serviceHighlights = [
+  { icon: faTruck, title: "Home Delivery", copy: "Delivery is available where order details and destination information are confirmed clearly." },
+  { icon: faStore, title: "Shop Collection", copy: "Pickup support stays straightforward for customers who prefer collection after confirmation." },
+  { icon: faShirt, title: "Worship Ready", copy: "Polished whitewear and modest pieces prepared for worship gatherings and community events." },
+  { icon: faPeopleGroup, title: "Family & Group Orders", copy: "Coordinate garments for families, groups, and shared occasion planning with practical support." }
 ];
 
 export function Home() {
@@ -40,6 +47,8 @@ export function Home() {
   const heroBackground = resolveMediaUrl(settings.heroHomeBg) || "/images/site/hero-home-bg.jpg";
   const heroModel = resolveMediaUrl(settings.heroHomeModel) || "/images/site/hero-home-model.jpg";
   const promoBanner = resolveMediaUrl(settings.homePromoBanner) || "/images/site/banner-home-promo.jpg";
+  const ecocashNumber = settings.ecocashMerchantNumber.trim();
+  const ecocashMerchant = settings.ecocashMerchantName.trim() || "White Angels Apparels";
 
   async function submitStockAlert(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,7 +117,7 @@ export function Home() {
           <div className="why-grid">
             {whyWhiteAngels.map((item) => (
               <article className="why-card" key={item.title}>
-                <span className="why-card__emoji" aria-hidden="true">{item.emoji}</span>
+                <span className="why-card__icon" aria-hidden="true"><FontAwesomeIcon icon={item.icon} /></span>
                 <h3>{item.title}</h3>
                 <p>{item.copy}</p>
               </article>
@@ -128,14 +137,16 @@ export function Home() {
       <ProductRail title="Featured products" eyebrow="Selected for you" products={products.filter((product) => product.featured).length ? products.filter((product) => product.featured) : products.slice(0, 4)} empty="Featured products will appear here once the catalogue is populated." />
 
       <Section className="split-section">
-        <Container className="two-column">
-          <div>
+        <Container className="delivery-collection-section">
+          <div className="delivery-collection-heading">
             <p className="eyebrow">Delivery and collection</p>
             <h2>Choose what works for your order.</h2>
+            <p>White Angels Apparels supports practical ordering for worshipwear, family coordination, and occasion planning without making the process feel complicated.</p>
           </div>
-          <div className="selection-grid">
-            <Feature icon={faTruck} title="Home Delivery" copy="Provide your delivery address at checkout and review the delivery fee before placing the order." />
-            <Feature icon={faStore} title="Shop Collection" copy={settings.collectionInstructions || "Collection details will be confirmed after your order is approved."} />
+          <div className="delivery-card-grid">
+            {serviceHighlights.map((item) => (
+              <Feature key={item.title} icon={item.icon} title={item.title} copy={item.title === "Shop Collection" ? (settings.collectionInstructions || item.copy) : item.copy} />
+            ))}
           </div>
         </Container>
       </Section>
@@ -144,9 +155,24 @@ export function Home() {
         <Container className="payment-social">
           <div>
             <SectionHeading eyebrow="Payment options" title="EcoCash or cash" copy="EcoCash references are submitted for manual verification; no automatic mobile money processing is implied." />
-            <div className="pill-row">
-              <span><FontAwesomeIcon icon={faWallet} /> EcoCash</span>
-              <span><FontAwesomeIcon icon={faStore} /> Cash</span>
+            <div className="payment-card-grid">
+              <article className="payment-method-card payment-method-card--ecocash">
+                <div className="payment-method-card__brand">
+                  <span className="payment-logo-badge" aria-hidden="true">EcoCash</span>
+                  <div>
+                    <strong>EcoCash</strong>
+                    <p>{ecocashMerchant}</p>
+                  </div>
+                </div>
+                <div className="payment-method-card__details">
+                  <span>{ecocashNumber || "Merchant number can be added in Admin Settings."}</span>
+                  <small>Use the configured EcoCash number above, then keep your reference ready for manual verification.</small>
+                </div>
+              </article>
+              <div className="pill-row">
+                <span><FontAwesomeIcon icon={faWallet} /> EcoCash</span>
+                <span><FontAwesomeIcon icon={faStore} /> Cash</span>
+              </div>
             </div>
           </div>
           <div>
@@ -175,17 +201,17 @@ export function Home() {
             <SectionHeading eyebrow="New stock alerts" title="Get White Angels updates on WhatsApp." copy="Join the stock alert list with your WhatsApp number and explicit consent. Unsubscribed customers are excluded from sends." />
           </div>
           <form className="form-stack" onSubmit={submitStockAlert}>
-            <div className="form-grid">
-              <Field label="Name optional" value={stockForm.name} onChange={(event) => setStockForm({ ...stockForm, name: event.target.value })} />
-              <Field label="WhatsApp Number" value={stockForm.whatsappNumber} onChange={(event) => setStockForm({ ...stockForm, whatsappNumber: event.target.value })} placeholder="077..., 071..., 078..., or +263..." />
+            <div className="stock-alert-form-grid">
+              <Field label="Name optional" value={stockForm.name} onChange={(event) => setStockForm({ ...stockForm, name: event.target.value })} placeholder="Your name" />
+              <Field label="WhatsApp Number" value={stockForm.whatsappNumber} onChange={(event) => setStockForm({ ...stockForm, whatsappNumber: event.target.value })} placeholder="077..." />
+              <label className="auth-checkbox stock-alert-consent">
+                <input type="checkbox" checked={stockForm.optedIn} onChange={(event) => setStockForm({ ...stockForm, optedIn: event.target.checked })} />
+                <span>I agree to receive White Angels Apparels stock updates through WhatsApp.</span>
+              </label>
+              <AppButton type="submit" disabled={stockSubmitting} className="stock-alert-submit">{stockSubmitting ? "Saving..." : "Notify Me"}</AppButton>
             </div>
-            <label className="auth-checkbox">
-              <input type="checkbox" checked={stockForm.optedIn} onChange={(event) => setStockForm({ ...stockForm, optedIn: event.target.checked })} />
-              <span>I agree to receive White Angels Apparels stock updates through WhatsApp.</span>
-            </label>
             {stockError && <div className="error-card">{stockError}</div>}
             {stockMessage && <div className="status-banner">{stockMessage}</div>}
-            <AppButton type="submit" disabled={stockSubmitting}>{stockSubmitting ? "Saving..." : "Notify Me"}</AppButton>
           </form>
         </Container>
       </Section>
@@ -206,7 +232,7 @@ function ProductRail({ title, eyebrow, products, empty }: { title: string; eyebr
 
 function Feature({ icon, title, copy }: { icon: any; title: string; copy: string }) {
   return (
-    <article className="feature-card">
+    <article className="feature-card delivery-card">
       <FontAwesomeIcon icon={icon} />
       <h3>{title}</h3>
       <p>{copy}</p>

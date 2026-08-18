@@ -20,6 +20,8 @@ export function Checkout() {
   const [error, setError] = useState("");
   const deliveryFee = fulfilmentMethod === "HOME_DELIVERY" ? Number(settings.defaultDeliveryFee ?? 5) : 0;
   const total = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);
+  const ecocashNumber = settings.ecocashMerchantNumber.trim();
+  const ecocashMerchant = settings.ecocashMerchantName.trim() || "White Angels Apparels";
 
   async function placeOrder() {
     setError("");
@@ -46,7 +48,7 @@ export function Checkout() {
 
   return (
     <main>
-      <Hero title="Complete your order." subtitle="Simple customer details, fulfilment, payment, and review." image={settings.heroCheckout} compact />
+      <Hero className="hero--checkout" title="Complete your order." subtitle="Simple customer details, fulfilment, payment, and review." image={settings.heroCheckout} compact />
       <Section>
         <Container className="checkout-grid">
           <div className="checkout-flow">
@@ -77,10 +79,25 @@ export function Checkout() {
                 <Choice selected={paymentMethod === "CASH"} icon={faWallet} title={fulfilmentMethod === "HOME_DELIVERY" ? "Cash on Delivery" : "Cash on Collection"} copy="Pay when receiving the order." onClick={() => setPayment("CASH")} />
               </div>
               {paymentMethod === "ECOCASH" && (
-                <div className="form-grid">
-                  <Field label="EcoCash phone number" value={form.ecocashPhone || ""} onChange={set("ecocashPhone")} />
-                  <Field label="EcoCash transaction/reference number" value={form.ecocashReference || ""} onChange={set("ecocashReference")} />
-                  <Field label="Payment proof" type="file" />
+                <div className="checkout-ecocash-panel">
+                  <article className="payment-method-card payment-method-card--ecocash payment-method-card--checkout">
+                    <div className="payment-method-card__brand">
+                      <span className="payment-logo-badge" aria-hidden="true">EcoCash</span>
+                      <div>
+                        <strong>EcoCash</strong>
+                        <p>{ecocashMerchant}</p>
+                      </div>
+                    </div>
+                    <div className="payment-method-card__details">
+                      <span>{ecocashNumber || "Merchant number can be added in Admin Settings."}</span>
+                      <small>Send payment to the configured merchant number, then enter the paying number and reference below for manual verification.</small>
+                    </div>
+                  </article>
+                  <div className="form-grid">
+                    <Field label="EcoCash phone number" value={form.ecocashPhone || ""} onChange={set("ecocashPhone")} />
+                    <Field label="EcoCash transaction/reference number" value={form.ecocashReference || ""} onChange={set("ecocashReference")} />
+                    <Field className="span-2" label="Payment proof" type="file" />
+                  </div>
                 </div>
               )}
             </Step>

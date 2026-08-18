@@ -299,26 +299,102 @@ adminRoutes.post("/account/change-password", async (req, res, next) => {
   }
 });
 
-adminRoutes.get("/dashboard", (_req, res) => {
-  res.json({
-    cards: {
-      todaysSales: 0,
-      totalSales: 0,
-      totalOrders: 0,
-      pendingOrders: 0,
-      awaitingPaymentVerification: 0,
-      homeDeliveries: 0,
-      shopCollections: 0,
-      totalProducts: 0,
-      lowStockProducts: 0,
-      outOfStockProducts: 0,
-      customers: 0
-    },
-    recentOrders: [],
-    lowStock: [],
-    inventoryActivity: [],
-    salesOverview: []
-  });
+adminRoutes.get("/dashboard", async (_req, res, next) => {
+  try {
+    const cardsResult = await query(
+      `select
+         coalesce(sum(case when created_at >= current_date and order_status <> 'CANCELLED' then total else 0 end), 0) as todays_sales,
+         coalesce(sum(case when order_status <> 'CANCELLED' then total else 0 end), 0) as total_sales,
+         count(*) as total_orders,
+         count(*) filter (where order_status not in ('DELIVERED', 'COLLECTED', 'CANCELLED')) as pending_orders,
+         count(*) filter (where payment_status = 'PENDING_VERIFICATION') as awaiting_payment_verification,
+         count(*) filter (where fulfilment_method = 'HOME_DELIVERY') as home_deliveries,
+         count(*) filter (where fulfilment_method = 'SHOP_COLLECTION') as shop_collections
+       from orders`
+    );
+    const productStatsResult = await query(
+      `select
+         count(*) filter (where status = 'ACTIVE') as total_products,
+         count(*) filter (where status = 'ACTIVE' and stock_quantity > 0 and stock_quantity <= low_stock_threshold) as low_stock_products,
+         count(*) filter (where status = 'ACTIVE' and stock_quantity <= 0) as out_of_stock_products
+       from products`
+    );
+    const customerStatsResult = await query("select count(*) as customers from customers");
+    const subscriberStatsResult = await query("select count(*) as total_subscribers from stock_alert_subscribers");
+    const recentOrdersResult = await query(
+      `select o.id, o.order_number, o.total, o.order_status, o.payment_status, o.fulfilment_method, o.created_at, c.full_name
+       from orders o
+       join customers c on c.id = o.customer_id
+       order by o.created_at desc
+       limit 6`
+    );
+    const lowStockResult = await query(
+      `select id, name, stock_quantity, low_stock_threshold
+       from products
+       where status = 'ACTIVE' and stock_quantity > 0 and stock_quantity <= low_stock_threshold
+       order by stock_quantity asc, updated_at desc
+       limit 6`
+    );
+    const inventoryActivityResult = await query(
+      `select im.id, p.name as product_name, im.movement_type, im.quantity, im.stock_after, im.created_at
+       from inventory_movements im
+       join products p on p.id = im.product_id
+       order by im.created_at desc
+       limit 6`
+    );
+    const salesOverviewResult = await query(
+      `select
+         to_char(days.day, 'Dy') as day,
+         coalesce(sum(o.total) filter (where o.order_status <> 'CANCELLED'), 0) as revenue,
+         count(o.id) filter (where o.order_status <> 'CANCELLED') as orders
+       from generate_series(current_date - interval '6 days', current_date, interval '1 day') as days(day)
+       left join orders o on date(o.created_at) = days.day::date
+       group by days.day
+       order by days.day`
+    );
+    const orderStatusCountsResult = await query(
+      `select order_status as status, count(*) as count
+       from orders
+       group by order_status
+       order by count(*) desc, order_status asc`
+    );
+
+    const cards = cardsResult.rows[0] as Record<string, string | number | null> | undefined;
+    const productStats = productStatsResult.rows[0] as Record<string, string | number | null> | undefined;
+    const customerStats = customerStatsResult.rows[0] as Record<string, string | number | null> | undefined;
+    const subscriberStats = subscriberStatsResult.rows[0] as Record<string, string | number | null> | undefined;
+
+    res.json({
+      cards: {
+        todaysSales: Number(cards?.todays_sales ?? 0),
+        totalSales: Number(cards?.total_sales ?? 0),
+        totalOrders: Number(cards?.total_orders ?? 0),
+        pendingOrders: Number(cards?.pending_orders ?? 0),
+        awaitingPaymentVerification: Number(cards?.awaiting_payment_verification ?? 0),
+        homeDeliveries: Number(cards?.home_deliveries ?? 0),
+        shopCollections: Number(cards?.shop_collections ?? 0),
+        totalProducts: Number(productStats?.total_products ?? 0),
+        lowStockProducts: Number(productStats?.low_stock_products ?? 0),
+        outOfStockProducts: Number(productStats?.out_of_stock_products ?? 0),
+        customers: Number(customerStats?.customers ?? 0),
+        totalSubscribers: Number(subscriberStats?.total_subscribers ?? 0)
+      },
+      recentOrders: recentOrdersResult.rows,
+      lowStock: lowStockResult.rows,
+      inventoryActivity: inventoryActivityResult.rows,
+      salesOverview: salesOverviewResult.rows.map((row) => ({
+        day: String(row.day ?? ""),
+        revenue: Number(row.revenue ?? 0),
+        orders: Number(row.orders ?? 0)
+      })),
+      orderStatusCounts: orderStatusCountsResult.rows.map((row) => ({
+        status: String(row.status ?? ""),
+        count: Number(row.count ?? 0)
+      }))
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 adminRoutes.get("/orders", async (_req, res, next) => {

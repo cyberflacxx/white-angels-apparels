@@ -1,6 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter, faMagnifyingGlass, faSliders } from "@fortawesome/free-solid-svg-icons";
 import { useMemo, useState } from "react";
+import { resolveMediaUrl } from "../lib/media";
 import { Hero } from "../components/Hero";
 import { ProductCard } from "../components/ProductCard";
 import { Container, EmptyState, Section, SelectField } from "../components/UI";
@@ -13,6 +14,15 @@ export function Shop() {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("Newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const categoryCards = useMemo(
+    () => [
+      { id: "settings-women", name: "Women", image: resolveMediaUrl(settings.categoryWomen) || "/images/site/category-women.jpg" },
+      { id: "settings-men", name: "Men", image: resolveMediaUrl(settings.categoryMen) || "/images/site/category-men.jpg" },
+      { id: "settings-shoes", name: "Shoes", image: resolveMediaUrl(settings.categoryShoes) || "/images/site/category-shoes.jpg" },
+      { id: "settings-accessories", name: "Accessories", image: resolveMediaUrl(settings.categoryAccessories) || "/images/site/category-accessories.jpg" }
+    ],
+    [settings.categoryAccessories, settings.categoryMen, settings.categoryShoes, settings.categoryWomen]
+  );
   const visible = useMemo(() => {
     const filtered = products.filter((product) => (!category || product.category_name === category) && product.name.toLowerCase().includes(search.toLowerCase()));
     return [...filtered].sort((a, b) => (sort === "Price Low to High" ? Number(a.price) - Number(b.price) : sort === "Price High to Low" ? Number(b.price) - Number(a.price) : 0));
@@ -20,7 +30,7 @@ export function Shop() {
 
   return (
     <main>
-      <Hero title="Find your next look." subtitle="Search, filter, and shop White Angels pieces without clutter." image={settings.heroShop} compact />
+      <Hero className="hero--shop" title="Find your next look." subtitle="Search, filter, and shop White Angels pieces without clutter." image={settings.heroShop} compact />
       <Section>
         <Container>
           {catalogError && <div className="status-banner" role="status">{catalogError}</div>}
@@ -33,6 +43,20 @@ export function Shop() {
             <button className="btn btn--secondary mobile-filter-button" onClick={() => setFiltersOpen(true)}>
               <FontAwesomeIcon icon={faSliders} /> Filters
             </button>
+          </div>
+
+          <div className="shop-category-strip" aria-label="Shop categories">
+            {categoryCards.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={category === item.name ? "shop-category-card shop-category-card--active" : "shop-category-card"}
+                onClick={() => setCategory((current) => current === item.name ? "" : item.name)}
+              >
+                <img src={item.image} alt={item.name} />
+                <span>{item.name}</span>
+              </button>
+            ))}
           </div>
 
           <div className={filtersOpen ? "filters filters--open" : "filters"}>

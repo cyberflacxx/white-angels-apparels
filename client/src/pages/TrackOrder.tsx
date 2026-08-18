@@ -23,7 +23,7 @@ export function TrackOrder() {
   }
   return (
     <main>
-      <Hero title="Where is your order?" subtitle="Enter your order number and phone number to protect private order details." image={settings.heroTrackOrder} compact />
+      <Hero className="hero--track-order" title="Where is your order?" subtitle="Enter your order number and phone number to protect private order details." image={settings.heroTrackOrder} compact />
       <Section>
         <Container className="track-card">
           <div className="form-stack">

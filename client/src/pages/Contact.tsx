@@ -10,7 +10,7 @@ export function Contact() {
   const { settings } = useSiteSettings();
   return (
     <main>
-      <Hero title="We would love to hear from you." subtitle="Reach out for orders, collection, delivery, and product questions." image={settings.heroContact} compact />
+      <Hero className="hero--contact" title="We would love to hear from you." subtitle="Reach out for orders, collection, delivery, and product questions." image={settings.heroContact} compact />
       <Section>
         <Container>
           <div className="contact-grid">

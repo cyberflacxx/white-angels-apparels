@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBars, faBoxesStacked, faChartLine, faChevronDown, faGear, faLayerGroup, faRightFromBracket, faShirt, faShoppingCart, faStore, faUserCog, faUsers, faUsersViewfinder, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+import { faBars, faBoxesStacked, faChartLine, faChevronDown, faGear, faLayerGroup, faMoon, faRightFromBracket, faShirt, faShoppingCart, faStore, faSun, faUserCog, faUsers, faUsersViewfinder, faXmark } from "@fortawesome/free-solid-svg-icons";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { clearAdminToken } from "../lib/adminAuth";
 import { useAdminAccount } from "../pages/hooks";
@@ -20,8 +20,17 @@ const links = [
 export function AdminLayout() {
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => readAdminTheme());
   const navigate = useNavigate();
   const { account } = useAdminAccount();
+
+  useEffect(() => {
+    window.localStorage.setItem("wa-admin-theme", theme);
+    document.documentElement.dataset.adminTheme = theme;
+    return () => {
+      delete document.documentElement.dataset.adminTheme;
+    };
+  }, [theme]);
 
   function logout() {
     clearAdminToken();
@@ -29,7 +38,7 @@ export function AdminLayout() {
   }
 
   return (
-    <main className={open ? "admin-shell admin-shell--open" : "admin-shell"}>
+    <main className={open ? `admin-shell admin-shell--open admin-shell--${theme}` : `admin-shell admin-shell--${theme}`}>
       <aside>
         <div className="admin-brand">
           <span>WA</span>
@@ -53,6 +62,14 @@ export function AdminLayout() {
             <strong>Welcome, {account?.first_name || "Admin"}</strong>
             <span>User Account</span>
           </div>
+          <button
+            type="button"
+            className="admin-theme-toggle"
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+          >
+            <FontAwesomeIcon icon={theme === "dark" ? faSun : faMoon} />
+          </button>
           <div className="admin-account-menu">
             <button type="button" className="admin-account-menu__trigger" onClick={() => setAccountOpen((value) => !value)}>
               <FontAwesomeIcon icon={faUserCog} />
@@ -72,4 +89,11 @@ export function AdminLayout() {
       </section>
     </main>
   );
+}
+
+function readAdminTheme() {
+  if (typeof window === "undefined") return "light";
+  const saved = window.localStorage.getItem("wa-admin-theme");
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

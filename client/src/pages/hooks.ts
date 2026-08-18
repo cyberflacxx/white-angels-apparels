@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, hasApiBaseUrl, isCategory, isProduct, type AdminAccount, type Category, type Product, type SiteSettings, type Subscriber } from "../lib/api";
+import { api, hasApiBaseUrl, isCategory, isProduct, type AdminAccount, type AdminDashboardResponse, type Category, type Product, type SiteSettings, type Subscriber } from "../lib/api";
 import { normalizeCategoryMedia, normalizeProductMedia, normalizeSiteSettingsMedia } from "../lib/media";
 import { WHATSAPP_CHANNEL_URL } from "../lib/site";
 
@@ -182,6 +182,38 @@ export function useSubscribers(enabled = true) {
   }, [enabled]);
 
   return { subscribers, loading, error, setSubscribers };
+}
+
+export function useAdminDashboard(enabled = true) {
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(enabled);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    setLoading(true);
+
+    void api
+      .get<AdminDashboardResponse>("/admin/dashboard")
+      .then((response) => {
+        if (!active) return;
+        setDashboard(response.data);
+        setError("");
+      })
+      .catch(() => {
+        if (active) setError("Dashboard analytics could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [enabled]);
+
+  return { dashboard, loading, error, setDashboard };
 }
 
 function readList<T>(result: PromiseSettledResult<{ data: unknown }>, isItem: (value: unknown) => value is T) {

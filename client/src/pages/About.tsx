@@ -8,7 +8,7 @@ export function About() {
   const { settings } = useSiteSettings();
   return (
     <main>
-      <Hero title="The White Angels Story." subtitle="A clean, premium fashion experience ready for the real brand narrative and photography." image={settings.heroAbout} compact />
+      <Hero className="hero--about" title="The White Angels Story." subtitle="A clean, premium fashion experience ready for the real brand narrative and photography." image={settings.heroAbout} compact />
       <Section>
         <Container className="two-column story-block">
           <div>

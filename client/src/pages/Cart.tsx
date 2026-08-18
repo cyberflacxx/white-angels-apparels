@@ -12,7 +12,7 @@ export function Cart() {
   const { settings } = useSiteSettings();
   return (
     <main>
-      <Hero title="Your Cart" subtitle="Review your pieces before checkout." image={settings.heroCart} compact />
+      <Hero className="hero--cart" title="Your Cart" subtitle="Review your pieces before checkout." image={settings.heroCart} compact />
       <Section>
         <Container className="cart-layout">
           <div className="cart-list">

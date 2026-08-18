@@ -10,6 +10,7 @@ import { Checkout } from "./pages/Checkout";
 import { Contact } from "./pages/Contact";
 import { Home } from "./pages/Home";
 import { OrderSuccess } from "./pages/OrderSuccess";
+import { DeliveryPolicyPage, PrivacyPolicyPage, ReturnsPolicyPage, TermsPage } from "./pages/Policies";
 import { ProductPage } from "./pages/ProductPage";
 import { Shop } from "./pages/Shop";
 import { TrackOrder } from "./pages/TrackOrder";
@@ -29,6 +30,10 @@ export default function App() {
             <Route path="/track-order" element={<TrackOrder />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/delivery-policy" element={<DeliveryPolicyPage />} />
+            <Route path="/returns-policy" element={<ReturnsPolicyPage />} />
           </Route>
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/register" element={<AdminRegister />} />
