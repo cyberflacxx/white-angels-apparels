@@ -25,7 +25,7 @@ export function SectionHeading({ eyebrow, title, copy, action }: { eyebrow?: str
   );
 }
 
-export function AppButton({ variant = "primary", icon = faArrowRight, children, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "soft"; icon?: IconDefinition | null }) {
+export function AppButton({ variant = "primary", icon = faArrowRight, children, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "soft" | "success"; icon?: IconDefinition | null }) {
   return (
     <button className={`btn btn--${variant} ${className}`} {...props}>
       <span>{children}</span>
@@ -43,29 +43,32 @@ export function AppLink({ variant = "primary", icon = faArrowRight, children, cl
   );
 }
 
-export function Field({ label, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+export function Field({ label, error, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
   return (
     <label className={`field ${className}`}>
-      <span>{label}</span>
-      <input {...props} />
+      <span className="field__label">{label}</span>
+      <input aria-invalid={Boolean(error)} {...props} />
+      {error ? <span className="field__error">{error}</span> : null}
     </label>
   );
 }
 
-export function TextAreaField({ label, className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
+export function TextAreaField({ label, error, className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string }) {
   return (
     <label className={`field ${className}`}>
-      <span>{label}</span>
-      <textarea {...props} />
+      <span className="field__label">{label}</span>
+      <textarea aria-invalid={Boolean(error)} {...props} />
+      {error ? <span className="field__error">{error}</span> : null}
     </label>
   );
 }
 
-export function SelectField({ label, children, className = "", ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode }) {
+export function SelectField({ label, error, children, className = "", ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode; error?: string }) {
   return (
     <label className={`field ${className}`}>
-      <span>{label}</span>
+      <span className="field__label">{label}</span>
       <select {...props}>{children}</select>
+      {error ? <span className="field__error">{error}</span> : null}
     </label>
   );
 }

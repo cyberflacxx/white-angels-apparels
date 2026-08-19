@@ -6,21 +6,28 @@ import { requirePool, query } from "../db/pool.js";
 import { AppError } from "../middleware/error.js";
 import { resolveUploadPathFromUrl, toPublicUploadUrl } from "../middleware/upload.js";
 
+const nonNegativeNumberMessage = "Enter a valid non-negative amount.";
+
+const slugSchema = z.string().trim().transform((value) => slugify(value)).pipe(
+  z.string().min(1, "Product slug is required.")
+);
+
 const productPayloadSchema = z.object({
-  name: z.string().trim().min(1),
-  slug: z.string().trim().min(1),
-  sku: z.string().trim().min(1),
-  categoryId: z.string().uuid(),
+  name: z.string().trim().min(1, "Product name is required."),
+  slug: slugSchema,
+  sku: z.string().trim().min(1, "SKU is required."),
+  categoryId: z.string().trim().min(1, "Select a category."),
   shortDescription: z.string().trim().default(""),
   description: z.string().trim().default(""),
-  price: z.coerce.number().min(0),
-  previousPrice: z.union([z.coerce.number().min(0), z.literal(""), z.null(), z.undefined()]).transform((value) =>
-    value === "" || value == null ? null : value
-  ),
-  stockQuantity: z.coerce.number().int().min(0),
-  lowStockThreshold: z.coerce.number().int().min(0).default(5),
-  featured: z.coerce.boolean().default(false),
-  newArrival: z.coerce.boolean().default(false),
+  price: z.coerce.number().refine((value) => Number.isFinite(value) && value >= 0, nonNegativeNumberMessage),
+  previousPrice: z.preprocess(
+    (value) => (typeof value === "string" && !value.trim()) || value == null ? null : value,
+    z.coerce.number().refine((value) => Number.isFinite(value) && value >= 0, nonNegativeNumberMessage).nullable().optional()
+  ).transform((value) => value ?? null),
+  stockQuantity: z.coerce.number().int("Stock must be a whole number.").min(0, "Stock must be 0 or greater."),
+  lowStockThreshold: z.coerce.number().int("Low-stock threshold must be a whole number.").min(0, "Low-stock threshold must be 0 or greater.").default(5),
+  featured: z.preprocess(parseBooleanInput, z.boolean().default(false)),
+  newArrival: z.preprocess(parseBooleanInput, z.boolean().default(false)),
   status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]).default("ACTIVE"),
   stockChangeType: z.enum(["STOCK_IN", "ADJUSTMENT", "DAMAGED"]).optional(),
   stockChangeReason: z.string().trim().optional().default(""),
@@ -36,9 +43,9 @@ type UploadedFile = { filename: string };
 export function parseProductPayload(input: Record<string, unknown>) {
   return productPayloadSchema.parse({
     name: input.name,
-    slug: input.slug,
+    slug: input.slug ?? input.name,
     sku: input.sku,
-    categoryId: input.categoryId,
+    categoryId: input.categoryId ?? input.category,
     shortDescription: input.shortDescription,
     description: input.description,
     price: input.price,
@@ -61,7 +68,7 @@ export async function createProduct(payload: ProductPayload, uploadedFiles: Uplo
   const client = await requirePool().connect();
   try {
     await client.query("begin");
-    await assertCategoryExists(client, payload.categoryId);
+    const categoryId = await resolveActiveCategoryId(client, payload.categoryId);
     await ensureUniqueProductFields(client, payload.slug, payload.sku);
 
     const productId = randomUUID();
@@ -75,7 +82,7 @@ export async function createProduct(payload: ProductPayload, uploadedFiles: Uplo
         payload.name,
         payload.slug,
         payload.sku,
-        payload.categoryId,
+        categoryId,
         payload.shortDescription,
         payload.description,
         payload.price.toFixed(2),
@@ -117,7 +124,7 @@ export async function updateProduct(productId: string, payload: ProductPayload, 
   try {
     await client.query("begin");
     const existing = await lockProduct(client, productId);
-    await assertCategoryExists(client, payload.categoryId);
+    const categoryId = await resolveActiveCategoryId(client, payload.categoryId);
     await ensureUniqueProductFields(client, payload.slug, payload.sku, productId);
 
     await client.query(
@@ -129,7 +136,7 @@ export async function updateProduct(productId: string, payload: ProductPayload, 
         payload.name,
         payload.slug,
         payload.sku,
-        payload.categoryId,
+        categoryId,
         payload.shortDescription,
         payload.description,
         payload.price.toFixed(2),
@@ -261,6 +268,18 @@ export async function getAdminProductById(productId: string) {
   return { ...productResult.rows[0], images };
 }
 
+export async function listAdminProducts() {
+  const result = await query(
+    `select p.*, c.name as category_name, coalesce(pi.image_url, '/images/site/placeholder-product.jpg') as image_url
+     from products p
+     join categories c on c.id = p.category_id
+     left join product_images pi on pi.product_id = p.id and pi.is_primary = true
+     order by p.updated_at desc, p.created_at desc`
+  );
+
+  return result.rows;
+}
+
 export async function listProductImages(productId: string) {
   const result = await query("select * from product_images where product_id = $1 order by sort_order asc, created_at asc", [productId]);
   return result.rows;
@@ -356,16 +375,20 @@ async function reassignPrimaryIfNeeded(client: PoolClient, productId: string) {
   }
 }
 
-async function assertCategoryExists(client: PoolClient, categoryId: string) {
-  const result = await client.query("select id from categories where id = $1 and status = 'ACTIVE'", [categoryId]);
-  if (!result.rows[0]) throw new AppError(400, "Selected category does not exist.");
+async function resolveActiveCategoryId(client: PoolClient, categoryId: string) {
+  const result = await client.query<{ id: string }>(
+    "select id from categories where (id::text = $1 or lower(slug) = lower($1)) and status = 'ACTIVE'",
+    [categoryId]
+  );
+  if (!result.rows[0]) throw new AppError(400, "Please select a valid product category.");
+  return result.rows[0].id;
 }
 
 async function ensureUniqueProductFields(client: PoolClient, slug: string, sku: string, productId?: string) {
   const slugResult = await client.query("select id from products where lower(slug) = lower($1) and ($2::uuid is null or id <> $2)", [slug, productId ?? null]);
-  if (slugResult.rows[0]) throw new AppError(409, "Product slug already exists.");
+  if (slugResult.rows[0]) throw new AppError(409, "A product with this URL slug already exists.");
   const skuResult = await client.query("select id from products where lower(sku) = lower($1) and ($2::uuid is null or id <> $2)", [sku, productId ?? null]);
-  if (skuResult.rows[0]) throw new AppError(409, "Product SKU already exists.");
+  if (skuResult.rows[0]) throw new AppError(409, `A product with SKU ${sku} already exists.`);
 }
 
 async function lockProduct(client: PoolClient, productId: string) {
@@ -419,4 +442,25 @@ function parseJsonArray(input: unknown) {
   } catch {
     return [];
   }
+}
+
+function parseBooleanInput(value: unknown) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "on" || normalized === "yes") return true;
+    if (normalized === "false" || normalized === "0" || normalized === "off" || normalized === "no" || normalized === "") return false;
+  }
+  if (typeof value === "number") return value === 1;
+  return false;
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

@@ -1,4 +1,4 @@
-import axios, { AxiosHeaders } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
 
 const developmentApiBaseUrl = "http://localhost:4100/api/v1";
 const configuredApiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL?.trim() ?? "");
@@ -42,9 +42,19 @@ export type Product = {
   price: string;
   previous_price?: string | null;
   stock_quantity: number;
+  low_stock_threshold: number;
+  status?: "ACTIVE" | "INACTIVE" | "ARCHIVED";
   image_url?: string;
   featured: boolean;
   new_arrival: boolean;
+  images?: ProductImage[];
+};
+
+export type ProductImage = {
+  id: string;
+  image_url: string;
+  sort_order: number;
+  is_primary: boolean;
 };
 
 export type Category = {
@@ -200,4 +210,102 @@ export function isCategory(value: unknown): value is Category {
 
 function normalizeApiBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+export type ApiErrorSummary = {
+  message: string;
+  fieldErrors: Record<string, string>;
+  status?: number;
+};
+
+export function extractApiError(error: unknown, fallbackMessage = "Something went wrong."): ApiErrorSummary {
+  const axiosError = error as AxiosError<any> | undefined;
+  if (axiosError?.code === "ECONNABORTED" || (!axiosError?.response && axiosError?.request)) {
+    return {
+      message: "Unable to connect to White Angels. Check your connection and try again.",
+      fieldErrors: {}
+    };
+  }
+
+  const status = axiosError?.response?.status;
+  const payload = axiosError?.response?.data;
+  const fieldErrors = extractFieldErrors(payload);
+  const rawMessage = firstNonEmptyString(
+    payload?.message,
+    payload?.error,
+    fieldErrors[Object.keys(fieldErrors)[0] ?? ""]
+  );
+  const safeMessage = sanitizeApiErrorMessage(rawMessage);
+  const message = mapFriendlyErrorMessage(status, safeMessage, payload, fallbackMessage);
+
+  return {
+    message,
+    fieldErrors,
+    status
+  };
+}
+
+function extractFieldErrors(payload: any) {
+  const fieldErrors: Record<string, string> = {};
+  const issues = Array.isArray(payload?.errors)
+    ? payload.errors
+    : Array.isArray(payload?.issues)
+      ? payload.issues
+      : [];
+
+  for (const issue of issues) {
+    const key = normalizeFieldKey(issue?.path);
+    const message = sanitizeApiErrorMessage(firstNonEmptyString(issue?.message, issue?.error, ""));
+    if (key && message && !fieldErrors[key]) {
+      fieldErrors[key] = message;
+    }
+  }
+
+  if (payload?.errors && !Array.isArray(payload.errors) && typeof payload.errors === "object") {
+    for (const [key, value] of Object.entries(payload.errors)) {
+      const message = sanitizeApiErrorMessage(firstNonEmptyString(value, ""));
+      if (message) fieldErrors[key] = message;
+    }
+  }
+
+  return fieldErrors;
+}
+
+function normalizeFieldKey(path: unknown) {
+  if (Array.isArray(path) && path.length) return String(path[path.length - 1]);
+  if (typeof path === "string") return path;
+  return "";
+}
+
+function sanitizeApiErrorMessage(message: string) {
+  const trimmed = message.trim();
+  if (!trimmed) return "";
+  if (/(postgres|sql|constraint|stack|\/opt\/|database_url|jwt_secret|private key|password)/i.test(trimmed)) {
+    return "";
+  }
+  return trimmed;
+}
+
+function mapFriendlyErrorMessage(status: number | undefined, safeMessage: string, payload: any, fallbackMessage: string) {
+  const lowerMessage = safeMessage.toLowerCase();
+
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 403) return "You are not permitted to perform this action.";
+  if (status === 404 && /categor|product/.test(lowerMessage)) return safeMessage || "The requested product or category could not be found.";
+  if (status === 409 && /sku/.test(lowerMessage)) return safeMessage || "A product with this SKU already exists.";
+  if (status === 409 && /slug|url/.test(lowerMessage)) return safeMessage || "A product with this name/URL already exists.";
+  if (status === 400 || status === 422) return safeMessage || "Please correct the highlighted product fields and try again.";
+  if (status === 500) return "Product could not be saved. Please try again.";
+  if (safeMessage) return safeMessage;
+  if (typeof payload?.message === "string" && /network|fetch/i.test(payload.message)) {
+    return "Unable to connect to White Angels. Check your connection and try again.";
+  }
+  return fallbackMessage;
+}
+
+function firstNonEmptyString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
 }

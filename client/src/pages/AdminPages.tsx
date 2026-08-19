@@ -1,5 +1,23 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowTrendUp, faBox, faBoxesStacked, faChartLine, faCloudArrowUp, faDollarSign, faLayerGroup, faMoneyBillWave, faPaperPlane, faPlus, faShoppingCart, faStore, faTriangleExclamation, faUsers, faUserCheck } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowTrendUp,
+  faBox,
+  faBoxesStacked,
+  faChartLine,
+  faCloudArrowUp,
+  faDollarSign,
+  faFloppyDisk,
+  faLayerGroup,
+  faMoneyBillWave,
+  faPaperPlane,
+  faPenToSquare,
+  faPlus,
+  faShoppingCart,
+  faStore,
+  faTriangleExclamation,
+  faUsers,
+  faUserCheck
+} from "@fortawesome/free-solid-svg-icons";
 import { Bar } from "react-chartjs-2";
 import {
   BarElement,
@@ -10,10 +28,10 @@ import {
   Title,
   Tooltip
 } from "chart.js";
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { AppButton, EmptyState, Field, SelectField, TextAreaField } from "../components/UI";
-import { api, type SiteSettings } from "../lib/api";
+import { type ChangeEvent, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { AppButton, EmptyState, Field, LoadingButtonLabel, SelectField, TextAreaField } from "../components/UI";
+import { api, extractApiError, type Category, type Product, type ProductImage, type SiteSettings } from "../lib/api";
 import { resolveMediaUrl, toStoredSiteSettingsMedia } from "../lib/media";
 import { normalizeSiteSettings, useAdminAccount, useAdminDashboard, useSiteSettings, useSubscribers } from "./hooks";
 
@@ -38,6 +56,25 @@ const mediaSlots = [
   { label: "Category Accessories", slot: "categoryAccessories", key: "categoryAccessories" }
 ] as const;
 
+const emptyProductForm = {
+  name: "",
+  slug: "",
+  sku: "",
+  price: "",
+  previousPrice: "",
+  stockQuantity: "0",
+  lowStockThreshold: "5",
+  categoryId: "",
+  shortDescription: "",
+  description: "",
+  status: "ACTIVE" as const,
+  featured: false,
+  newArrival: false
+};
+
+type ProductFormState = typeof emptyProductForm;
+type ProductFormErrors = Partial<Record<keyof ProductFormState | "form", string>>;
+
 export function AdminDashboard() {
   const { account } = useAdminAccount();
   const { dashboard, loading, error } = useAdminDashboard();
@@ -51,7 +88,7 @@ export function AdminDashboard() {
     { label: "All Orders", value: String(dashboard.cards.totalOrders), icon: faShoppingCart, tone: "primary" },
     { label: "Pending Orders", value: String(dashboard.cards.pendingOrders), icon: faChartLine, tone: "warning" },
     { label: "Awaiting EcoCash Review", value: String(dashboard.cards.awaitingPaymentVerification), icon: faMoneyBillWave, tone: "teal" },
-    { label: "Low Stock", value: String(dashboard.cards.lowStockProducts), icon: faTriangleExclamation, tone: "orange" },
+    { label: "Low Stock", value: String(dashboard.cards.lowStockProducts), icon: faTriangleExclamation, tone: "danger" },
     { label: "Subscribers", value: String(dashboard.cards.totalSubscribers), icon: faUsers, tone: "accent" }
   ] : [];
   const chartData = {
@@ -185,36 +222,313 @@ export function AdminOrderDetail() {
 }
 
 export function AdminProducts() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [message] = useState(readFlashMessage(location.state));
+
+  useEffect(() => {
+    if (!location.state || !readFlashMessage(location.state)) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+
+    void api.get<Product[]>("/admin/products")
+      .then((response) => {
+        if (!active) return;
+        setProducts(response.data);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(extractApiError(requestError, "Products could not be loaded.").message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section className="admin-page">
       <div className="admin-header admin-header--row">
         <div><h1>Products</h1><p>Add products, edit details, manage images, change prices, update stock, and deactivate items from one place.</p></div>
         <Link className="btn btn--primary" to="/admin/products/new"><FontAwesomeIcon icon={faPlus} /> Add Product</Link>
       </div>
-      <AdminTable title="" emptyTitle="No products yet" columns={["Image", "Name", "SKU", "Category", "Price", "Stock", "Status", "Featured", "Actions"]} embedded />
+      {message ? <div className="status-banner">{message}</div> : null}
+      {error ? <div className="error-card">{error}</div> : null}
+      <div className="admin-panel table-wrap">
+        {loading ? <div className="status-banner">Loading products...</div> : (
+          <table>
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Featured</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.length ? products.map((product) => (
+                <tr key={product.id}>
+                  <td>
+                    <img
+                      className="admin-product-thumb"
+                      src={resolveMediaUrl(product.image_url) || "/images/site/placeholder-product.jpg"}
+                      alt={product.name}
+                    />
+                  </td>
+                  <td>
+                    <strong>{product.name}</strong>
+                    <div className="table-subtle">{product.slug}</div>
+                  </td>
+                  <td>{product.sku}</td>
+                  <td>{product.category_name}</td>
+                  <td>{formatMoney(Number(product.price))}</td>
+                  <td>{product.stock_quantity}</td>
+                  <td>{formatStatus(product.status || "ACTIVE")}</td>
+                  <td>{product.featured ? "Yes" : "No"}</td>
+                  <td className="table-actions">
+                    <Link className="btn btn--secondary" to={`/admin/products/${product.id}/edit`}>
+                      <FontAwesomeIcon icon={faPenToSquare} /> Edit
+                    </Link>
+                  </td>
+                </tr>
+              )) : <tr><td colSpan={9}><EmptyInline icon={faBox} title="No products yet" /></td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
     </section>
   );
 }
 
 export function ProductForm() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const isEditing = Boolean(id);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [form, setForm] = useState<ProductFormState>(emptyProductForm);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message] = useState(readFlashMessage(location.state));
+  const [submitError, setSubmitError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<ProductFormErrors>({});
+  const [slugEdited, setSlugEdited] = useState(false);
+
+  useEffect(() => {
+    if (!location.state || !readFlashMessage(location.state)) return;
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setSubmitError("");
+
+    void Promise.all([
+      api.get<Category[]>("/admin/categories"),
+      isEditing ? api.get<Product>(`/admin/products/${id}`) : Promise.resolve(null)
+    ])
+      .then(([categoriesResponse, productResponse]) => {
+        if (!active) return;
+        setCategories(categoriesResponse.data);
+
+        if (productResponse?.data) {
+          const product = productResponse.data;
+          setForm({
+            name: product.name ?? "",
+            slug: product.slug ?? "",
+            sku: product.sku ?? "",
+            price: normalizeDecimal(product.price),
+            previousPrice: normalizeOptionalDecimal(product.previous_price),
+            stockQuantity: String(product.stock_quantity ?? 0),
+            lowStockThreshold: String(product.low_stock_threshold ?? 0),
+            categoryId: product.category_id ?? "",
+            shortDescription: product.short_description ?? "",
+            description: product.description ?? "",
+            status: product.status ?? "ACTIVE",
+            featured: Boolean(product.featured),
+            newArrival: Boolean(product.new_arrival)
+          });
+          setExistingImages(Array.isArray(product.images) ? product.images : []);
+          setSlugEdited(true);
+        } else {
+          setForm(emptyProductForm);
+          setExistingImages([]);
+          setSlugEdited(false);
+        }
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setSubmitError(extractApiError(requestError, "Product form could not be loaded.").message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, isEditing]);
+
+  useEffect(() => {
+    if (slugEdited) return;
+    setForm((current) => ({ ...current, slug: slugify(current.name) }));
+  }, [form.name, slugEdited]);
+
+  function updateField<Key extends keyof ProductFormState>(key: Key, value: ProductFormState[Key]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: undefined, form: undefined }));
+    setSubmitError("");
+  }
+
+  function handleFileSelection(event: ChangeEvent<HTMLInputElement>) {
+    setSelectedFiles(Array.from(event.target.files ?? []));
+    setFieldErrors((current) => ({ ...current, form: undefined }));
+  }
+
+  async function saveProduct() {
+    const nextErrors = validateProductForm(form);
+    setFieldErrors(nextErrors);
+    setSubmitError("");
+
+    if (Object.keys(nextErrors).length > 0) return;
+
+    const payload = new FormData();
+    payload.append("name", form.name.trim());
+    payload.append("slug", slugify(form.slug || form.name));
+    payload.append("sku", form.sku.trim());
+    payload.append("categoryId", form.categoryId);
+    payload.append("shortDescription", form.shortDescription.trim());
+    payload.append("description", form.description.trim());
+    payload.append("price", String(Number(form.price)));
+    payload.append("previousPrice", form.previousPrice.trim());
+    payload.append("stockQuantity", String(Number(form.stockQuantity)));
+    payload.append("lowStockThreshold", String(Number(form.lowStockThreshold)));
+    payload.append("status", form.status);
+    payload.append("featured", String(form.featured));
+    payload.append("newArrival", String(form.newArrival));
+    payload.append("imageOrder", JSON.stringify(existingImages.map((image) => image.id)));
+    payload.append("deletedImageIds", JSON.stringify([]));
+
+    for (const file of selectedFiles) {
+      payload.append("images", file);
+    }
+
+    setSaving(true);
+
+    try {
+      await (isEditing ? api.put(`/admin/products/${id}`, payload) : api.post("/admin/products", payload));
+      navigate("/admin/products", {
+        replace: true,
+        state: { message: "Product saved successfully." }
+      });
+    } catch (requestError) {
+      const summary = extractApiError(requestError, "Product could not be saved. Please try again.");
+      setFieldErrors((current) => ({ ...current, ...summary.fieldErrors }));
+      setSubmitError(summary.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <section className="admin-page">
-      <AdminHeader title="Product Form" copy="Add product details, upload a main image, add extra images, and prepare future image ordering controls." />
+      <AdminHeader title={isEditing ? "Edit Product" : "Add Product"} copy="Add product details, upload a main image, add extra images, and save products with inventory-safe validation." />
       <div className="admin-panel form-stack">
-        <div className="admin-helper-list" aria-label="Product management actions">
-          {["Add Product", "Edit Product", "Upload Images", "Set Primary Image", "Delete Image", "Update Stock", "Deactivate Product"].map((item) => <span key={item}>{item}</span>)}
-        </div>
-        <div className="form-grid">
-          {["Name", "Slug", "SKU", "Price", "Previous price", "Stock", "Low-stock threshold", "Category"].map((item) => <Field key={item} label={item} />)}
-        </div>
-        <TextAreaField label="Description" />
-        <label className="upload-zone">
-          <FontAwesomeIcon icon={faCloudArrowUp} />
-          <strong>Upload Product Images</strong>
-          <span>Main and additional product images can be selected here. Use this structure when wiring the final product media API.</span>
-          <input type="file" multiple />
-        </label>
-        <AppButton>Save Product</AppButton>
+        {loading ? <div className="status-banner">Loading product form...</div> : (
+          <>
+            {submitError ? (
+              <div className="error-card" role="alert">
+                <strong>Could not save product</strong>
+                <p>{submitError}</p>
+              </div>
+            ) : null}
+            {message ? <div className="status-banner">{message}</div> : null}
+            <div className="form-grid">
+              <Field label="Name" value={form.name} error={fieldErrors.name} onChange={(event) => updateField("name", event.target.value)} />
+              <Field
+                label="Slug"
+                value={form.slug}
+                error={fieldErrors.slug}
+                onChange={(event) => {
+                  setSlugEdited(true);
+                  updateField("slug", slugify(event.target.value));
+                }}
+              />
+              <Field label="SKU" value={form.sku} error={fieldErrors.sku} onChange={(event) => updateField("sku", event.target.value)} />
+              <Field label="Price" type="number" min="0" step="0.01" value={form.price} error={fieldErrors.price} onChange={(event) => updateField("price", event.target.value)} />
+              <Field label="Previous price" type="number" min="0" step="0.01" value={form.previousPrice} error={fieldErrors.previousPrice} onChange={(event) => updateField("previousPrice", event.target.value)} />
+              <Field label="Stock" type="number" min="0" step="1" value={form.stockQuantity} error={fieldErrors.stockQuantity} onChange={(event) => updateField("stockQuantity", event.target.value)} />
+              <Field label="Low-stock threshold" type="number" min="0" step="1" value={form.lowStockThreshold} error={fieldErrors.lowStockThreshold} onChange={(event) => updateField("lowStockThreshold", event.target.value)} />
+              <SelectField label="Category" value={form.categoryId} error={fieldErrors.categoryId} onChange={(event) => updateField("categoryId", event.target.value)}>
+                <option value="">Select category</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </SelectField>
+              <SelectField label="Status" value={form.status} onChange={(event) => updateField("status", event.target.value as ProductFormState["status"])}>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="ARCHIVED">Archived</option>
+              </SelectField>
+              <Field label="Short description" value={form.shortDescription} onChange={(event) => updateField("shortDescription", event.target.value)} />
+              <label className="field">
+                <span className="field__label">Featured</span>
+                <input type="checkbox" checked={form.featured} onChange={(event) => updateField("featured", event.target.checked)} />
+              </label>
+              <label className="field">
+                <span className="field__label">New arrival</span>
+                <input type="checkbox" checked={form.newArrival} onChange={(event) => updateField("newArrival", event.target.checked)} />
+              </label>
+            </div>
+            <TextAreaField label="Description" value={form.description} onChange={(event) => updateField("description", event.target.value)} />
+            <label className="upload-zone">
+              <FontAwesomeIcon icon={faCloudArrowUp} />
+              <strong>Upload Product Images</strong>
+              <span>Select a main image or extra gallery images. Existing images stay in place if saving fails.</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleFileSelection} />
+            </label>
+            {selectedFiles.length ? (
+              <div className="admin-file-list">
+                {selectedFiles.map((file) => <span key={file.name}>{file.name}</span>)}
+              </div>
+            ) : null}
+            {existingImages.length ? (
+              <div className="admin-image-strip">
+                {existingImages.map((image) => (
+                  <img key={image.id} src={resolveMediaUrl(image.image_url) || "/images/site/placeholder-product.jpg"} alt="Product" />
+                ))}
+              </div>
+            ) : null}
+            <div className="admin-form-actions">
+              <AppButton
+                type="button"
+                variant="success"
+                icon={saving ? null : faFloppyDisk}
+                disabled={saving}
+                onClick={() => void saveProduct()}
+              >
+                {saving ? <LoadingButtonLabel label="Saving..." /> : isEditing ? "Save Changes" : "Save Product"}
+              </AppButton>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );
@@ -269,7 +583,7 @@ export function AdminSettings() {
       setForm(normalizeSiteSettings(response.data));
       setMessage("Settings saved.");
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Settings could not be saved.");
+      setError(extractApiError(requestError, "Settings could not be saved.").message);
     }
   }
 
@@ -282,7 +596,7 @@ export function AdminSettings() {
       setForm(normalizeSiteSettings(response.data));
       setMessage("Media updated.");
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Media upload failed.");
+      setError(extractApiError(requestError, "Media upload failed.").message);
     }
   }
 
@@ -294,7 +608,7 @@ export function AdminSettings() {
       setForm(normalizeSiteSettings(response.data));
       setMessage("Media removed. Static fallback is active.");
     } catch (requestError: any) {
-      setError(requestError?.response?.data?.message || "Media could not be removed.");
+      setError(extractApiError(requestError, "Media could not be removed.").message);
     }
   }
 
@@ -367,7 +681,7 @@ export function AdminAccount() {
       setMessage("Password updated.");
       setPasswordForm({ currentPassword: "", nextPassword: "", confirmPassword: "" });
     } catch (requestError: any) {
-      setSubmitError(requestError?.response?.data?.message || "Password could not be changed.");
+      setSubmitError(extractApiError(requestError, "Password could not be changed.").message);
     }
   }
 
@@ -426,7 +740,7 @@ export function AdminSubscribers() {
       const response = await api.patch(`/admin/subscribers/${id}/status`, { status: "INACTIVE" });
       setSubscribers((current) => current.map((item) => (item.id === id ? response.data : item)));
     } catch (requestError: any) {
-      setSendError(requestError?.response?.data?.message || "Subscriber status could not be updated.");
+      setSendError(extractApiError(requestError, "Subscriber status could not be updated.").message);
     }
   }
 
@@ -440,7 +754,7 @@ export function AdminSubscribers() {
       });
       setMessage(`Processed ${response.data.eligibleCount} eligible subscriber(s).`);
     } catch (requestError: any) {
-      setSendError(requestError?.response?.data?.message || "Messages could not be queued.");
+      setSendError(extractApiError(requestError, "Messages could not be queued.").message);
     }
   }
 
@@ -550,10 +864,70 @@ function EmptyInline({ icon, title }: { icon: any; title: string }) {
   return <span className="table-empty"><FontAwesomeIcon icon={icon} /> {title}</span>;
 }
 
+function readFlashMessage(state: unknown) {
+  if (!state || typeof state !== "object") return "";
+  const message = (state as { message?: unknown }).message;
+  return typeof message === "string" ? message : "";
+}
+
+function validateProductForm(form: ProductFormState) {
+  const errors: ProductFormErrors = {};
+
+  if (!form.name.trim()) errors.name = "Product name is required.";
+  if (!slugify(form.slug || form.name)) errors.slug = "Product URL slug is required.";
+  if (!form.sku.trim()) errors.sku = "SKU is required.";
+  if (!form.categoryId) errors.categoryId = "Select a category.";
+
+  const price = Number(form.price);
+  if (!form.price.trim() || Number.isNaN(price) || price < 0) {
+    errors.price = "Enter a valid selling price.";
+  }
+
+  if (form.previousPrice.trim()) {
+    const previousPrice = Number(form.previousPrice);
+    if (Number.isNaN(previousPrice) || previousPrice < 0) {
+      errors.previousPrice = "Enter a valid non-negative previous price.";
+    }
+  }
+
+  const stockQuantity = Number(form.stockQuantity);
+  if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
+    errors.stockQuantity = "Stock must be 0 or greater.";
+  }
+
+  const lowStockThreshold = Number(form.lowStockThreshold);
+  if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+    errors.lowStockThreshold = "Low-stock threshold must be 0 or greater.";
+  }
+
+  return errors;
+}
+
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(value);
 }
 
 function formatStatus(value: string) {
   return value.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function normalizeDecimal(value: string | number | null | undefined) {
+  if (value == null) return "";
+  const number = Number(value);
+  return Number.isFinite(number) ? String(number) : "";
+}
+
+function normalizeOptionalDecimal(value: string | number | null | undefined) {
+  if (value == null || value === "") return "";
+  return normalizeDecimal(value);
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

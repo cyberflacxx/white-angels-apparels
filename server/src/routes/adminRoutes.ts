@@ -14,8 +14,8 @@ import { canAttemptOtp, canResendOtp, generateOtpCode, hashOtpCode, maskEmailAdd
 import { sendAdminOtpEmail } from "../services/emailService.js";
 import { canReceiveStockAlert, filterEligibleSubscribers } from "../services/subscriberService.js";
 import { getRequiredWhatsAppVariables, sendStockAlertMessage } from "../services/whatsappService.js";
-import { listCategories, listProducts } from "../services/catalogService.js";
-import { adjustInventory, createProduct, deleteProductImage, getAdminProductById, parseProductPayload, reorderProductImages, setPrimaryProductImage, updateProduct } from "../services/productAdminService.js";
+import { listCategories } from "../services/catalogService.js";
+import { adjustInventory, createProduct, deleteProductImage, getAdminProductById, listAdminProducts, parseProductPayload, reorderProductImages, setPrimaryProductImage, updateProduct } from "../services/productAdminService.js";
 
 export const adminRoutes = Router();
 
@@ -438,7 +438,7 @@ adminRoutes.patch("/orders/:id/status", async (req, res, next) => {
   }
 });
 
-adminRoutes.get("/products", async (_req, res) => res.json(await listProducts()));
+adminRoutes.get("/products", async (_req, res) => res.json(await listAdminProducts()));
 adminRoutes.get("/products/:id", async (req, res, next) => {
   try {
     res.json(await getAdminProductById(String(req.params.id)));
@@ -452,6 +452,7 @@ adminRoutes.post("/products", productUpload.array("images", 10), async (req, res
     const files = ((req.files as Express.Multer.File[] | undefined) ?? []).map((file) => ({ filename: file.filename }));
     res.status(201).json(await createProduct(payload, files, req.admin?.sub));
   } catch (error) {
+    logProductMutationError("create", req.admin?.sub, req.body as Record<string, unknown>, error);
     next(error);
   }
 });
@@ -461,6 +462,7 @@ adminRoutes.put("/products/:id", productUpload.array("images", 10), async (req, 
     const files = ((req.files as Express.Multer.File[] | undefined) ?? []).map((file) => ({ filename: file.filename }));
     res.json(await updateProduct(String(req.params.id), payload, files, req.admin?.sub));
   } catch (error) {
+    logProductMutationError("update", req.admin?.sub, req.body as Record<string, unknown>, error);
     next(error);
   }
 });
@@ -726,3 +728,29 @@ adminRoutes.post("/subscribers/send", async (req, res, next) => {
     next(error);
   }
 });
+
+function logProductMutationError(operation: "create" | "update", adminId: string | undefined, body: Record<string, unknown>, error: unknown) {
+  const category = typeof body.categoryId === "string" && body.categoryId.trim()
+    ? body.categoryId.trim()
+    : typeof body.category === "string"
+      ? body.category.trim()
+      : "";
+
+  const safeError = error instanceof AppError
+    ? { status: error.status, message: error.message }
+    : error instanceof z.ZodError
+      ? { status: 422, message: error.issues[0]?.message ?? "Validation failed." }
+      : error instanceof Error
+        ? { status: 500, message: error.message }
+        : { status: 500, message: "Unknown error" };
+
+  console.error("[admin-products]", {
+    operation,
+    adminId: adminId ?? null,
+    sku: typeof body.sku === "string" ? body.sku.trim() : "",
+    slug: typeof body.slug === "string" ? body.slug.trim() : "",
+    name: typeof body.name === "string" ? body.name.trim() : "",
+    category,
+    error: safeError
+  });
+}
