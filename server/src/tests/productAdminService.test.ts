@@ -17,6 +17,7 @@ vi.mock("../middleware/upload.js", () => ({
 
 const {
   createProduct,
+  deleteProduct,
   parseProductPayload,
   updateProduct
 } = await import("../services/productAdminService.js");
@@ -26,10 +27,15 @@ function buildClient(options?: {
   duplicateSlug?: boolean;
   duplicateSku?: boolean;
   existingStock?: number;
+  hasOrderItems?: boolean;
+  hasInventoryMovements?: boolean;
+  posSaleItemsTableExists?: boolean;
+  hasPosSaleItems?: boolean;
 }) {
   const state = {
     committed: false,
     rolledBack: false,
+    deleted: false,
     product: null as null | Record<string, unknown>
   };
 
@@ -114,6 +120,31 @@ function buildClient(options?: {
       }
 
       if (sql.includes("select id from product_images where product_id = $1 order by sort_order asc")) {
+        return { rows: [] };
+      }
+
+      if (sql.includes("select 1 from order_items where product_id = $1 limit 1")) {
+        return { rows: options?.hasOrderItems ? [{ exists: 1 }] : [] };
+      }
+
+      if (sql.includes("select 1 from inventory_movements where product_id = $1 limit 1")) {
+        return { rows: options?.hasInventoryMovements ? [{ exists: 1 }] : [] };
+      }
+
+      if (sql.includes("select exists (select 1 from information_schema.tables")) {
+        return { rows: [{ exists: options?.posSaleItemsTableExists ?? true }] };
+      }
+
+      if (sql.includes("select 1 from pos_sale_items where product_id = $1 limit 1")) {
+        return { rows: options?.hasPosSaleItems ? [{ exists: 1 }] : [] };
+      }
+
+      if (sql.includes("select image_url from product_images where product_id = $1")) {
+        return { rows: [] };
+      }
+
+      if (sql.includes("delete from products where id = $1")) {
+        state.deleted = true;
         return { rows: [] };
       }
 
@@ -303,5 +334,34 @@ describe("productAdminService mutations", () => {
     expect(result.name).toBe("Garmet Updated");
     expect(state.committed).toBe(true);
     expect(state.rolledBack).toBe(false);
+  });
+
+  it("hard deletes a product with no historical references", async () => {
+    const { state } = buildClient({
+      existingStock: 0,
+      hasOrderItems: false,
+      hasInventoryMovements: false,
+      hasPosSaleItems: false
+    });
+
+    const result = await deleteProduct("prod-delete-1");
+
+    expect(result).toEqual({ ok: true, mode: "deleted" });
+    expect(state.deleted).toBe(true);
+    expect(state.committed).toBe(true);
+  });
+
+  it("archives a product when historical references exist", async () => {
+    const { client, state } = buildClient({
+      existingStock: 0,
+      hasOrderItems: true
+    });
+
+    const result = await deleteProduct("prod-archive-1");
+
+    expect(result).toEqual({ ok: true, mode: "archived" });
+    expect(state.deleted).toBe(false);
+    expect(client.query).toHaveBeenCalledWith("update products set status = 'ARCHIVED', updated_at = now() where id = $1", ["prod-archive-1"]);
+    expect(state.committed).toBe(true);
   });
 });

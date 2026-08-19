@@ -216,6 +216,36 @@ export async function deleteProductImage(productId: string, imageId: string) {
   }
 }
 
+export async function deleteProduct(productId: string) {
+  const client = await requirePool().connect();
+  try {
+    await client.query("begin");
+    const product = await lockProduct(client, productId);
+    const hasReferences = await productHasHistoricalReferences(client, product.id);
+
+    if (hasReferences) {
+      await client.query("update products set status = 'ARCHIVED', updated_at = now() where id = $1", [productId]);
+      await client.query("commit");
+      return { ok: true, mode: "archived" as const };
+    }
+
+    const images = await client.query<{ image_url: string }>("select image_url from product_images where product_id = $1", [productId]);
+    await client.query("delete from products where id = $1", [productId]);
+    await client.query("commit");
+
+    for (const image of images.rows) {
+      await removeFileForUrl(image.image_url);
+    }
+
+    return { ok: true, mode: "deleted" as const };
+  } catch (error) {
+    await client.query("rollback");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function adjustInventory(input: {
   productId: string;
   movementType: "STOCK_IN" | "ADJUSTMENT" | "DAMAGED";
@@ -324,6 +354,24 @@ async function insertUploadedImages(client: PoolClient, productId: string, uploa
   }
 
   return inserted;
+}
+
+async function productHasHistoricalReferences(client: PoolClient, productId: string) {
+  const orderItems = await client.query("select 1 from order_items where product_id = $1 limit 1", [productId]);
+  if (orderItems.rows[0]) return true;
+
+  const inventoryMovements = await client.query("select 1 from inventory_movements where product_id = $1 limit 1", [productId]);
+  if (inventoryMovements.rows[0]) return true;
+
+  const posSalesTable = await client.query<{ exists: boolean }>(
+    "select exists (select 1 from information_schema.tables where table_schema = current_schema() and table_name = 'pos_sale_items') as exists"
+  );
+  if (posSalesTable.rows[0]?.exists) {
+    const posSaleItems = await client.query("select 1 from pos_sale_items where product_id = $1 limit 1", [productId]);
+    if (posSaleItems.rows[0]) return true;
+  }
+
+  return false;
 }
 
 async function applyPrimaryAndOrdering(

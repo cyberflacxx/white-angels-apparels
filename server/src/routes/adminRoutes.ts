@@ -15,7 +15,7 @@ import { sendAdminOtpEmail } from "../services/emailService.js";
 import { canReceiveStockAlert, filterEligibleSubscribers } from "../services/subscriberService.js";
 import { getRequiredWhatsAppVariables, sendStockAlertMessage } from "../services/whatsappService.js";
 import { listCategories } from "../services/catalogService.js";
-import { adjustInventory, createProduct, deleteProductImage, getAdminProductById, listAdminProducts, parseProductPayload, reorderProductImages, setPrimaryProductImage, updateProduct } from "../services/productAdminService.js";
+import { adjustInventory, createProduct, deleteProduct, deleteProductImage, getAdminProductById, listAdminProducts, parseProductPayload, reorderProductImages, setPrimaryProductImage, updateProduct } from "../services/productAdminService.js";
 
 export const adminRoutes = Router();
 
@@ -511,8 +511,7 @@ adminRoutes.delete("/products/:id/images/:imageId", async (req, res, next) => {
 });
 adminRoutes.delete("/products/:id", async (req, res, next) => {
   try {
-    await query("update products set status = 'ARCHIVED', updated_at = now() where id = $1", [req.params.id]);
-    res.json({ ok: true });
+    res.json(await deleteProduct(String(req.params.id)));
   } catch (error) {
     next(error);
   }
