@@ -43,31 +43,34 @@ export function AppLink({ variant = "primary", icon = faArrowRight, children, cl
   );
 }
 
-export function Field({ label, error, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
+export function Field({ label, error, helper, className = "", ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; helper?: string }) {
   return (
     <label className={`field ${className}`}>
       <span className="field__label">{label}</span>
       <input aria-invalid={Boolean(error)} {...props} />
+      {helper ? <span className="field__helper">{helper}</span> : null}
       {error ? <span className="field__error">{error}</span> : null}
     </label>
   );
 }
 
-export function TextAreaField({ label, error, className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string }) {
+export function TextAreaField({ label, error, helper, className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string; helper?: string }) {
   return (
     <label className={`field ${className}`}>
       <span className="field__label">{label}</span>
       <textarea aria-invalid={Boolean(error)} {...props} />
+      {helper ? <span className="field__helper">{helper}</span> : null}
       {error ? <span className="field__error">{error}</span> : null}
     </label>
   );
 }
 
-export function SelectField({ label, error, children, className = "", ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode; error?: string }) {
+export function SelectField({ label, error, helper, children, className = "", ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode; error?: string; helper?: string }) {
   return (
     <label className={`field ${className}`}>
       <span className="field__label">{label}</span>
-      <select {...props}>{children}</select>
+      <select aria-invalid={Boolean(error)} {...props}>{children}</select>
+      {helper ? <span className="field__helper">{helper}</span> : null}
       {error ? <span className="field__error">{error}</span> : null}
     </label>
   );

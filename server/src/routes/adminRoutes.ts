@@ -408,11 +408,32 @@ adminRoutes.get("/orders", async (_req, res, next) => {
 
 adminRoutes.get("/orders/:id", async (req, res, next) => {
   try {
-    const result = await query<{ id: string }>("select * from orders where id::text = $1 or order_number = $1", [req.params.id]);
+    const result = await query<{ id: string }>(
+      `select o.*, c.full_name, c.phone
+       from orders o
+       join customers c on c.id = o.customer_id
+       where o.id::text = $1 or o.order_number = $1`,
+      [req.params.id]
+    );
     if (!result.rows[0]) throw new AppError(404, "Order not found.");
     const items = await query("select * from order_items where order_id = $1", [result.rows[0].id]);
     const history = await query("select * from order_status_history where order_id = $1 order by created_at", [result.rows[0].id]);
-    res.json({ ...result.rows[0], items: items.rows, history: history.rows });
+    const deliveryAddress = await query(
+      "select city, street, delivery_latitude, delivery_longitude from delivery_addresses where order_id = $1 limit 1",
+      [result.rows[0].id]
+    );
+    const payment = await query(
+      "select method, amount, status, ecocash_payer_name, payment_proof_url from payments where order_id = $1 order by created_at desc limit 1",
+      [result.rows[0].id]
+    );
+
+    res.json({
+      ...result.rows[0],
+      items: items.rows,
+      history: history.rows,
+      deliveryAddress: deliveryAddress.rows[0] ?? null,
+      payment: payment.rows[0] ?? null
+    });
   } catch (error) {
     next(error);
   }

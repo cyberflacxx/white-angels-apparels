@@ -6,6 +6,7 @@ import { getSiteSettings } from "../services/siteSettingsService.js";
 import { validateSubscriberPhone } from "../services/subscriberService.js";
 import { checkoutSchema } from "../validation/orders.js";
 import { query } from "../db/pool.js";
+import { paymentProofUpload, toPublicUploadUrl } from "../middleware/upload.js";
 
 export const publicRoutes = Router();
 
@@ -109,9 +110,22 @@ publicRoutes.post("/orders/preview", (req, res, next) => {
   }
 });
 
-publicRoutes.post("/orders", async (req, res, next) => {
+publicRoutes.post("/orders", paymentProofUpload.single("paymentProof"), async (req, res, next) => {
   try {
-    res.status(201).json(await createOrder(checkoutSchema.parse(req.body)));
+    const rawBody = typeof req.body?.payload === "string"
+      ? JSON.parse(req.body.payload)
+      : req.body;
+
+    const paymentProofUrl = req.file ? toPublicUploadUrl(req.file.filename, "payment-proofs") : undefined;
+    const parsed = checkoutSchema.parse({
+      ...rawBody,
+      payment: {
+        ...(rawBody?.payment ?? {}),
+        ...(paymentProofUrl ? { paymentProofUrl } : {})
+      }
+    });
+
+    res.status(201).json(await createOrder(parsed));
   } catch (error) {
     next(error);
   }

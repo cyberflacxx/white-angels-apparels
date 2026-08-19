@@ -187,6 +187,47 @@ export type AdminDashboardResponse = {
   orderStatusCounts: DashboardStatusPoint[];
 };
 
+export type AdminOrderDetailResponse = {
+  id: string;
+  order_number: string;
+  full_name: string;
+  phone: string;
+  total: number | string;
+  payment_method: string;
+  payment_status: string;
+  fulfilment_method: string;
+  order_status: string;
+  created_at: string;
+  customer_notes?: string | null;
+  deliveryAddress?: {
+    city?: string | null;
+    street?: string | null;
+    delivery_latitude?: number | null;
+    delivery_longitude?: number | null;
+  } | null;
+  payment?: {
+    method?: string;
+    amount?: number | string;
+    status?: string;
+    ecocash_payer_name?: string | null;
+    payment_proof_url?: string | null;
+  } | null;
+  items: Array<{
+    id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number | string;
+    line_total: number | string;
+  }>;
+  history: Array<{
+    id: string;
+    previous_status?: string | null;
+    new_status: string;
+    notes?: string | null;
+    created_at: string;
+  }>;
+};
+
 export function isProduct(value: unknown): value is Product {
   return Boolean(
     value &&

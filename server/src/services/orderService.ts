@@ -7,11 +7,16 @@ import type { CartInput, FulfilmentMethod, PaymentMethod, PaymentStatus } from "
 import { fallbackProducts } from "./catalogService.js";
 
 export type CheckoutInput = {
-  customer: { fullName: string; phone: string; alternatePhone?: string; email?: string; notes?: string };
+  customer: { fullName: string; phone: string };
   fulfilmentMethod: FulfilmentMethod;
-  deliveryAddress?: Record<string, string | undefined>;
+  deliveryAddress?: {
+    addressLine1?: string;
+    cityArea?: string;
+    deliveryLatitude?: number;
+    deliveryLongitude?: number;
+  };
   paymentMethod: PaymentMethod;
-  payment?: { ecocashPhone?: string; ecocashReference?: string; paymentProofUrl?: string };
+  payment?: { ecocashPayerName?: string; paymentProofUrl?: string };
   items: CartInput[];
 };
 
@@ -47,13 +52,20 @@ export async function createOrder(input: CheckoutInput) {
     const order = await client.query(
       `insert into orders (id, order_number, customer_id, subtotal, delivery_fee, total, payment_method, payment_status, fulfilment_method, order_status, customer_notes)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) returning *`,
-      [randomUUID(), orderNumber, customer.id, totals.subtotal, totals.deliveryFee, totals.total, input.paymentMethod, paymentStatus, input.fulfilmentMethod, orderStatus, input.customer.notes ?? null]
+      [randomUUID(), orderNumber, customer.id, totals.subtotal, totals.deliveryFee, totals.total, input.paymentMethod, paymentStatus, input.fulfilmentMethod, orderStatus, null]
     );
     if (input.fulfilmentMethod === "HOME_DELIVERY") {
       await client.query(
-        `insert into delivery_addresses (id, order_id, province, city, suburb, street, house_number, landmark, delivery_instructions)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [randomUUID(), order.rows[0].id, input.deliveryAddress?.province, input.deliveryAddress?.city, input.deliveryAddress?.suburb, input.deliveryAddress?.street, input.deliveryAddress?.houseNumber, input.deliveryAddress?.landmark, input.deliveryAddress?.deliveryInstructions]
+        `insert into delivery_addresses (id, order_id, city, street, delivery_latitude, delivery_longitude)
+         values ($1,$2,$3,$4,$5,$6)`,
+        [
+          randomUUID(),
+          order.rows[0].id,
+          input.deliveryAddress?.cityArea ?? null,
+          input.deliveryAddress?.addressLine1 ?? null,
+          input.deliveryAddress?.deliveryLatitude ?? null,
+          input.deliveryAddress?.deliveryLongitude ?? null
+        ]
       );
     }
     for (const item of products) {
@@ -71,9 +83,9 @@ export async function createOrder(input: CheckoutInput) {
       );
     }
     await client.query(
-      `insert into payments (id, order_id, method, amount, ecocash_phone, ecocash_reference, payment_proof_url, status)
-       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [randomUUID(), order.rows[0].id, input.paymentMethod, totals.total, input.payment?.ecocashPhone ?? null, input.payment?.ecocashReference ?? null, input.payment?.paymentProofUrl ?? null, paymentStatus]
+      `insert into payments (id, order_id, method, amount, ecocash_payer_name, payment_proof_url, status)
+       values ($1,$2,$3,$4,$5,$6,$7)`,
+      [randomUUID(), order.rows[0].id, input.paymentMethod, totals.total, input.payment?.ecocashPayerName ?? null, input.payment?.paymentProofUrl ?? null, paymentStatus]
     );
     await client.query("insert into order_status_history (id, order_id, previous_status, new_status, notes) values ($1,$2,$3,$4,$5)", [randomUUID(), order.rows[0].id, null, orderStatus, "Order created."]);
     await client.query("commit");
@@ -136,15 +148,16 @@ export async function getOrderForPublic(orderNumber: string, phone?: string) {
   const params = phone ? [orderNumber, phone] : [orderNumber];
   const phoneClause = phone ? "and c.phone = $2" : "";
   const order = await requirePool().query(
-    `select o.*, c.full_name, c.phone, c.alternate_phone, c.email
+    `select o.*, c.full_name, c.phone
      from orders o join customers c on c.id = o.customer_id
      where o.order_number = $1 ${phoneClause}`,
     params
   );
   if (!order.rows[0]) throw new AppError(404, "Order not found.");
   const items = await requirePool().query("select * from order_items where order_id = $1 order by created_at", [order.rows[0].id]);
-  const payment = await requirePool().query("select method, amount, status, ecocash_phone, ecocash_reference from payments where order_id = $1 order by created_at desc limit 1", [order.rows[0].id]);
-  return { ...order.rows[0], items: items.rows, payment: payment.rows[0] };
+  const payment = await requirePool().query("select method, amount, status, ecocash_payer_name, payment_proof_url from payments where order_id = $1 order by created_at desc limit 1", [order.rows[0].id]);
+  const deliveryAddress = await requirePool().query("select city, street, delivery_latitude, delivery_longitude from delivery_addresses where order_id = $1 limit 1", [order.rows[0].id]);
+  return { ...order.rows[0], items: items.rows, payment: payment.rows[0], deliveryAddress: deliveryAddress.rows[0] ?? null };
 }
 
 async function loadProductsForUpdate(client: PoolClient, items: CartInput[]) {
@@ -161,8 +174,15 @@ async function loadProductsForUpdate(client: PoolClient, items: CartInput[]) {
 
 async function upsertCustomer(client: PoolClient, customer: CheckoutInput["customer"]) {
   const existing = await client.query("select * from customers where phone = $1", [customer.phone]);
-  if (existing.rows[0]) return existing.rows[0];
-  const created = await client.query("insert into customers (id, full_name, phone, alternate_phone, email) values ($1,$2,$3,$4,$5) returning *", [randomUUID(), customer.fullName, customer.phone, customer.alternatePhone ?? null, customer.email || null]);
+  if (existing.rows[0]) {
+    const current = existing.rows[0] as { id: string; full_name: string };
+    if (current.full_name !== customer.fullName) {
+      const updated = await client.query("update customers set full_name = $1, updated_at = now() where id = $2 returning *", [customer.fullName, current.id]);
+      return updated.rows[0];
+    }
+    return current;
+  }
+  const created = await client.query("insert into customers (id, full_name, phone, alternate_phone, email) values ($1,$2,$3,$4,$5) returning *", [randomUUID(), customer.fullName, customer.phone, null, null]);
   return created.rows[0];
 }
 

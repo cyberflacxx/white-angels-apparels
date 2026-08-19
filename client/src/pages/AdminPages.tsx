@@ -32,7 +32,7 @@ import {
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AppButton, EmptyState, Field, LoadingButtonLabel, SelectField, TextAreaField } from "../components/UI";
-import { api, extractApiError, type Category, type Product, type ProductImage, type SiteSettings } from "../lib/api";
+import { api, extractApiError, type AdminOrderDetailResponse, type Category, type Product, type ProductImage, type SiteSettings } from "../lib/api";
 import { resolveMediaUrl, toStoredSiteSettingsMedia } from "../lib/media";
 import { normalizeSiteSettings, useAdminAccount, useAdminDashboard, useSiteSettings, useSubscribers } from "./hooks";
 
@@ -207,17 +207,192 @@ export function AdminDashboard() {
 }
 
 export function AdminOrders() {
-  return <AdminTable title="Orders" emptyTitle="No orders yet" columns={["Order number", "Customer", "Phone", "Amount", "Payment", "Fulfilment", "Status", "Created", "Actions"]} filters={["All", "Pending", "Paid", "EcoCash", "Cash", "Home Delivery", "Shop Collection", "Completed", "Cancelled"]} />;
+  const [orders, setOrders] = useState<Array<{
+    id: string;
+    order_number: string;
+    full_name: string;
+    phone: string;
+    total: number | string;
+    payment_method: string;
+    fulfilment_method: string;
+    order_status: string;
+    created_at: string;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+
+    void api.get("/admin/orders")
+      .then((response) => {
+        if (!active) return;
+        setOrders(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(extractApiError(requestError, "Orders could not be loaded.").message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <section className="admin-page">
+      <AdminHeader title="Orders" copy="Review customer orders, payment methods, fulfilment, and order status." />
+      {error ? <div className="error-card">{error}</div> : null}
+      <div className="admin-panel table-wrap">
+        {loading ? <div className="status-banner">Loading orders...</div> : (
+          <table>
+            <thead>
+              <tr>
+                <th>Order number</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Fulfilment</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.length ? orders.map((order) => (
+                <tr key={order.id}>
+                  <td>{order.order_number}</td>
+                  <td>{order.full_name}</td>
+                  <td>{order.phone}</td>
+                  <td>{formatMoney(Number(order.total))}</td>
+                  <td>{formatStatus(order.payment_method)}</td>
+                  <td>{formatStatus(order.fulfilment_method)}</td>
+                  <td>{formatStatus(order.order_status)}</td>
+                  <td>{new Date(order.created_at).toLocaleString()}</td>
+                  <td className="table-actions">
+                    <Link className="btn btn--secondary" to={`/admin/orders/${order.id}`}>View</Link>
+                  </td>
+                </tr>
+              )) : <tr><td colSpan={9}><EmptyInline icon={faBox} title="No orders yet" /></td></tr>}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  );
 }
 
 export function AdminOrderDetail() {
+  const { id } = useParams();
+  const [order, setOrder] = useState<AdminOrderDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+
+    void api.get<AdminOrderDetailResponse>(`/admin/orders/${id}`)
+      .then((response) => {
+        if (!active) return;
+        setOrder(response.data);
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setError(extractApiError(requestError, "Order details could not be loaded.").message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const deliveryLocationUrl = order?.deliveryAddress?.delivery_latitude != null && order?.deliveryAddress?.delivery_longitude != null
+    ? `https://www.google.com/maps?q=${order.deliveryAddress.delivery_latitude},${order.deliveryAddress.delivery_longitude}`
+    : "";
+
   return (
     <section className="admin-page">
-      <AdminHeader title="Order Detail" copy="Customer, payment, fulfilment, and order action foundation." />
-      <div className="admin-panel action-panel">
-        <EmptyState icon={faBox} title="Select a real order" copy="Order details will populate after database-backed admin list integration." />
-        {["Verify Payment", "Reject Payment", "Confirm Order", "Mark Preparing", "Ready for Collection", "Out for Delivery", "Delivered", "Collected", "Cancel Order"].map((item) => <button key={item}>{item}</button>)}
-      </div>
+      <AdminHeader title="Order Detail" copy="Customer, fulfilment, payment proof, and location details for the selected order." />
+      {error ? <div className="error-card">{error}</div> : null}
+      {loading ? <div className="status-banner">Loading order details...</div> : null}
+      {order ? (
+        <>
+          <div className="admin-grid admin-grid--compact">
+            <div className="admin-panel form-stack">
+              <h2>Customer</h2>
+              <AccountLine label="Order Number" value={order.order_number} />
+              <AccountLine label="Customer Name" value={order.full_name} />
+              <AccountLine label="Phone Number" value={order.phone} />
+              <AccountLine label="Fulfilment" value={formatStatus(order.fulfilment_method)} />
+              <AccountLine label="Payment Method" value={formatStatus(order.payment_method)} />
+              <AccountLine label="Order Status" value={formatStatus(order.order_status)} />
+            </div>
+            <div className="admin-panel form-stack">
+              <h2>{order.fulfilment_method === "HOME_DELIVERY" ? "Home Delivery" : "Shop Collection"}</h2>
+              {order.fulfilment_method === "HOME_DELIVERY" ? (
+                <>
+                  <AccountLine label="Delivery Address" value={order.deliveryAddress?.street || "Not provided"} />
+                  <AccountLine label="City / Area" value={order.deliveryAddress?.city || "Not provided"} />
+                  <div className="account-line">
+                    <span>Shared Location</span>
+                    {deliveryLocationUrl ? (
+                      <strong><a className="admin-inline-link" href={deliveryLocationUrl} target="_blank" rel="noreferrer">Open Location</a></strong>
+                    ) : (
+                      <strong>Not shared</strong>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="muted">No delivery address or map location is required for shop collection orders.</p>
+              )}
+            </div>
+          </div>
+          <div className="admin-grid admin-grid--compact">
+            <div className="admin-panel form-stack">
+              <h2>EcoCash Details</h2>
+              {order.payment_method === "ECOCASH" ? (
+                <>
+                  <AccountLine label="Name Used for EcoCash Payment" value={order.payment?.ecocash_payer_name || "Not provided"} />
+                  <div className="account-line">
+                    <span>Payment Screenshot</span>
+                    {order.payment?.payment_proof_url ? (
+                      <strong><a className="admin-inline-link" href={resolveMediaUrl(order.payment.payment_proof_url) || order.payment.payment_proof_url} target="_blank" rel="noreferrer">View Screenshot</a></strong>
+                    ) : (
+                      <strong>Not provided</strong>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="muted">Cash orders do not require EcoCash payer details or a screenshot.</p>
+              )}
+            </div>
+            <div className="admin-panel form-stack">
+              <h2>Items</h2>
+              {order.items.map((item) => (
+                <div className="account-line" key={item.id}>
+                  <span>{item.quantity} x {item.product_name}</span>
+                  <strong>{formatMoney(Number(item.line_total))}</strong>
+                </div>
+              ))}
+              <div className="account-line">
+                <span>Total</span>
+                <strong>{formatMoney(Number(order.total))}</strong>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
