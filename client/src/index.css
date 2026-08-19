@@ -231,7 +231,7 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
 .pill-row { display: flex; flex-wrap: wrap; gap: .8rem; }
 .pill-row span { display: inline-flex; align-items: center; gap: .45rem; padding: .75rem 1rem; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary-dark); font-weight: 850; }
 .socials { display: flex; gap: .7rem; flex-wrap: wrap; }
-.socials a { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--color-primary-soft); color: var(--color-primary); }
+.socials a { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: var(--color-primary-soft); }
 .socials--large a { width: 54px; height: 54px; font-size: 1.25rem; }
 .social-link--whatsapp { background: #E9FFF1; color: #25D366; }
 .social-link--facebook { background: #EEF4FF; color: #1877F2; }
@@ -669,8 +669,7 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   gap: .85rem;
 }
 
-.socials a,
-.socials__disabled {
+.social-link {
   width: 48px;
   height: 48px;
   border-radius: 16px;
@@ -680,13 +679,11 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
 
-.social-link,
-.socials__disabled {
+.social-link {
   position: relative;
 }
 
-.social-link svg,
-.socials__disabled svg {
+.social-link svg {
   position: relative;
   z-index: 1;
   display: block;
@@ -700,29 +697,28 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   box-shadow: 0 14px 30px rgba(15, 23, 42, .12);
 }
 
-.socials--large a,
-.socials--large .socials__disabled {
+.socials--large .social-link {
   width: 58px;
   height: 58px;
   font-size: 1.28rem;
 }
 
-.social-link--whatsapp {
+.social-link.social-link--whatsapp {
   background: #FFFFFF;
   color: #25D366;
 }
 
-.social-link--facebook {
+.social-link.social-link--facebook {
   background: #FFFFFF;
   color: #1877F2;
 }
 
-.social-link--tiktok {
+.social-link.social-link--tiktok {
   background: #FFFFFF;
-  color: #111111;
+  color: #000000;
 }
 
-.social-link--instagram {
+.social-link.social-link--instagram {
   background: #FFFFFF;
   color: #C13584;
 }
@@ -736,37 +732,29 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   z-index: 0;
 }
 
-.socials__disabled {
-  color: #94A3B8;
+.social-link[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: default;
 }
 
-.socials__disabled--instagram {
-  color: #D96A9B;
-}
-
-.footer .social-link,
-.footer .socials__disabled {
+.footer .social-link {
   background: #FFFFFF;
   border-color: rgba(255,255,255,.16);
 }
 
-.footer .social-link--whatsapp,
-.footer .socials__disabled--whatsapp {
+.footer .social-link--whatsapp {
   color: #25D366;
 }
 
-.footer .social-link--facebook,
-.footer .socials__disabled--facebook {
+.footer .social-link--facebook {
   color: #1877F2;
 }
 
-.footer .social-link--tiktok,
-.footer .socials__disabled--tiktok {
-  color: #111827;
+.footer .social-link--tiktok {
+  color: #000000;
 }
 
-.footer .social-link--instagram,
-.footer .socials__disabled--instagram {
+.footer .social-link--instagram {
   color: #C13584;
 }
 
@@ -1036,14 +1024,14 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   border-radius: 10px;
   border: 1px solid transparent;
   font-size: .94rem;
-  font-weight: 560;
+  font-weight: 500;
 }
 
 .admin-shell aside a.active,
 .admin-shell aside a:hover {
   background: var(--admin-link-hover);
   color: #FFFFFF;
-  font-weight: 620;
+  font-weight: 600;
 }
 
 .admin-shell aside a svg,
@@ -1592,6 +1580,49 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
 
 .admin-delete-product {
   min-width: 160px;
+}
+
+.admin-form-actions .btn--success,
+.admin-form-actions .btn--danger,
+.admin-confirm-actions .btn--danger,
+.admin-confirm-actions .btn--secondary {
+  font-weight: 600;
+}
+
+.admin-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, .44);
+}
+
+.admin-confirm-card {
+  width: min(100%, 440px);
+  padding: 1.25rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 20px;
+  background: var(--admin-panel-bg);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .2);
+}
+
+.admin-confirm-card h3 {
+  margin: 0 0 .6rem;
+  color: var(--admin-heading);
+}
+
+.admin-confirm-card p {
+  margin: 0 0 .45rem;
+}
+
+.admin-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .75rem;
+  margin-top: 1rem;
 }
 
 .admin-shell--dark .admin-stat-pill--warning {

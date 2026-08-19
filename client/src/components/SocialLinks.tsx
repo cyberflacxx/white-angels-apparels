@@ -25,28 +25,20 @@ export function SocialLinks({
   const socials = getPublicSocialLinks(settings);
   return (
     <div className={large ? `${className} socials--large` : className}>
-      {socials.map((item) =>
-        item.enabled ? (
-          <a
-            href={item.href}
-            key={item.label}
-            aria-label={item.label}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`social-link social-link--${item.platform}`}
-          >
-            <FontAwesomeIcon icon={socialIcons[item.platform]} />
-          </a>
-        ) : (
-          <span
-            key={item.label}
-            className={`socials__disabled socials__disabled--${item.platform}`}
-            aria-label={`${item.label} not configured`}
-          >
-            <FontAwesomeIcon icon={socialIcons[item.platform]} />
-          </span>
-        )
-      )}
+      {socials.map((item) => (
+        <a
+          href={item.enabled ? item.href : undefined}
+          key={item.label}
+          aria-label={item.enabled ? item.label : `${item.label} not configured`}
+          aria-disabled={item.enabled ? undefined : true}
+          target={item.enabled ? "_blank" : undefined}
+          rel={item.enabled ? "noopener noreferrer" : undefined}
+          tabIndex={item.enabled ? undefined : -1}
+          className={`social-link social-link--${item.platform}`}
+        >
+          <FontAwesomeIcon icon={socialIcons[item.platform]} />
+        </a>
+      ))}
     </div>
   );
 }

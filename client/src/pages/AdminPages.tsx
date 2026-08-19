@@ -508,6 +508,7 @@ export function ProductForm() {
   const [fieldErrors, setFieldErrors] = useState<ProductFormErrors>({});
   const [slugEdited, setSlugEdited] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!location.state || !readFlashMessage(location.state)) return;
@@ -628,8 +629,6 @@ export function ProductForm() {
 
   async function deleteCurrentProduct() {
     if (!isEditing || !id || deleting || saving) return;
-    const confirmed = window.confirm("Are you sure you want to delete this product?\nThis action cannot be undone.");
-    if (!confirmed) return;
 
     setSubmitError("");
     setFieldErrors({});
@@ -646,6 +645,7 @@ export function ProductForm() {
       setSubmitError(summary.message);
     } finally {
       setDeleting(false);
+      setConfirmDeleteOpen(false);
     }
   }
 
@@ -733,12 +733,29 @@ export function ProductForm() {
                   icon={deleting ? null : faTrashCan}
                   className="admin-delete-product"
                   disabled={saving || deleting}
-                  onClick={() => void deleteCurrentProduct()}
+                  onClick={() => setConfirmDeleteOpen(true)}
                 >
                   {deleting ? <LoadingButtonLabel label="Deleting..." /> : "Delete Product"}
                 </AppButton>
               ) : null}
             </div>
+            {confirmDeleteOpen ? (
+              <div className="admin-confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-product-title">
+                <div className="admin-confirm-card">
+                  <h3 id="delete-product-title">Delete Product?</h3>
+                  <p>Are you sure you want to delete this product?</p>
+                  <p>This action cannot be undone.</p>
+                  <div className="admin-confirm-actions">
+                    <AppButton type="button" variant="secondary" icon={null} disabled={deleting} onClick={() => setConfirmDeleteOpen(false)}>
+                      Cancel
+                    </AppButton>
+                    <AppButton type="button" variant="danger" icon={deleting ? null : faTrashCan} disabled={deleting} onClick={() => void deleteCurrentProduct()}>
+                      {deleting ? "Deleting..." : "Delete Product"}
+                    </AppButton>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>
