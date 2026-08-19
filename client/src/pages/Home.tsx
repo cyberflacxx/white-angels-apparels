@@ -163,7 +163,7 @@ export function Home() {
           </div>
           <div>
             <SectionHeading eyebrow="Follow White Angels" title="Social channels" copy="WhatsApp is confirmed. Facebook, TikTok, and Instagram become clickable only when configured in admin settings." />
-            <SocialLinks settings={settings} large />
+            <SocialLinks settings={settings} />
             <p className="social-note">{WHATSAPP_CHANNEL_LABEL} is live now. Facebook, TikTok, and Instagram can be switched on later through admin settings.</p>
           </div>
         </Container>

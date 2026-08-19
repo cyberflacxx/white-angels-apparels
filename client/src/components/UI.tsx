@@ -25,7 +25,7 @@ export function SectionHeading({ eyebrow, title, copy, action }: { eyebrow?: str
   );
 }
 
-export function AppButton({ variant = "primary", icon = faArrowRight, children, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "soft" | "success"; icon?: IconDefinition | null }) {
+export function AppButton({ variant = "primary", icon = faArrowRight, children, className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "soft" | "success" | "danger"; icon?: IconDefinition | null }) {
   return (
     <button className={`btn btn--${variant} ${className}`} {...props}>
       <span>{children}</span>

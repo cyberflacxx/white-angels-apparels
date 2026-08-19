@@ -81,6 +81,8 @@ p { line-height: 1.75; color: var(--color-text-secondary); }
 .btn--secondary, .secondary-cta, .card-actions a { background: var(--color-white); color: var(--color-primary); border: 1px solid var(--color-primary-border); box-shadow: none; }
 .btn--success { background: #16A34A; color: #FFFFFF; box-shadow: 0 12px 24px rgba(22, 163, 74, .22); }
 .btn--success:hover { background: #15803D; }
+.btn--danger { background: #DC2626; color: #FFFFFF; box-shadow: 0 12px 24px rgba(220, 38, 38, .18); }
+.btn--danger:hover { background: #B91C1C; }
 .btn--ghost { background: rgba(255,255,255,.12); color: var(--color-white); border: 1px solid rgba(255,255,255,.65); box-shadow: none; }
 .btn--soft { background: var(--color-primary-soft); color: var(--color-primary-dark); box-shadow: none; }
 .disabled-link { pointer-events: none; opacity: .5; }
@@ -982,13 +984,14 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   border-radius: 10px;
   border: 1px solid transparent;
   font-size: .94rem;
-  font-weight: 750;
+  font-weight: 560;
 }
 
 .admin-shell aside a.active,
 .admin-shell aside a:hover {
   background: var(--admin-link-hover);
   color: #FFFFFF;
+  font-weight: 620;
 }
 
 .admin-shell aside a svg,
@@ -1307,7 +1310,8 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
 .metric-card--danger {
   color: #DC2626;
   background: linear-gradient(180deg, #FFFFFF 0%, #FEF2F2 100%);
-  border: 1px solid rgba(220, 38, 38, .18);
+  border: 1px solid rgba(220, 38, 38, .24);
+  box-shadow: 0 12px 28px rgba(220, 38, 38, .08);
 }
 
 .metric-card--accent {
@@ -1532,6 +1536,10 @@ th { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color:
   display: flex;
   justify-content: flex-start;
   gap: .75rem;
+}
+
+.admin-delete-product {
+  min-width: 160px;
 }
 
 .admin-shell--dark .admin-stat-pill--warning {

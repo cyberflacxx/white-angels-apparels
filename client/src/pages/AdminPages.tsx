@@ -14,6 +14,7 @@ import {
   faPlus,
   faShoppingCart,
   faStore,
+  faTrashCan,
   faTriangleExclamation,
   faUsers,
   faUserCheck
@@ -331,6 +332,7 @@ export function ProductForm() {
   const [submitError, setSubmitError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<ProductFormErrors>({});
   const [slugEdited, setSlugEdited] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!location.state || !readFlashMessage(location.state)) return;
@@ -449,6 +451,29 @@ export function ProductForm() {
     }
   }
 
+  async function deleteCurrentProduct() {
+    if (!isEditing || !id || deleting || saving) return;
+    const confirmed = window.confirm("Are you sure you want to delete this product?\nThis action cannot be undone.");
+    if (!confirmed) return;
+
+    setSubmitError("");
+    setFieldErrors({});
+    setDeleting(true);
+
+    try {
+      await api.delete(`/admin/products/${id}`);
+      navigate("/admin/products", {
+        replace: true,
+        state: { message: "Product deleted successfully." }
+      });
+    } catch (requestError) {
+      const summary = extractApiError(requestError, "Product could not be deleted. Please try again.");
+      setSubmitError(summary.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <section className="admin-page">
       <AdminHeader title={isEditing ? "Edit Product" : "Add Product"} copy="Add product details, upload a main image, add extra images, and save products with inventory-safe validation." />
@@ -521,11 +546,23 @@ export function ProductForm() {
                 type="button"
                 variant="success"
                 icon={saving ? null : faFloppyDisk}
-                disabled={saving}
+                disabled={saving || deleting}
                 onClick={() => void saveProduct()}
               >
                 {saving ? <LoadingButtonLabel label="Saving..." /> : isEditing ? "Save Changes" : "Save Product"}
               </AppButton>
+              {isEditing ? (
+                <AppButton
+                  type="button"
+                  variant="danger"
+                  icon={deleting ? null : faTrashCan}
+                  className="admin-delete-product"
+                  disabled={saving || deleting}
+                  onClick={() => void deleteCurrentProduct()}
+                >
+                  {deleting ? <LoadingButtonLabel label="Deleting..." /> : "Delete Product"}
+                </AppButton>
+              ) : null}
             </div>
           </>
         )}
